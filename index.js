@@ -1,8 +1,9 @@
 const beep = new Audio("data:audio/mpeg;base64,//NAxAASObKIDUBAAiAx///y7vegoDcPz2FAaAsDwaCgFgeGIieiJX////7v//CECgoKUWDcBQBQPKLBuDcXsTwfB8uf4IOWf+XB/BN4IHPDH//4kDCgAAAADYNtp65AuRxux////+f/80LEEhkL0uJfgWgCNutR/shrUFcFxJF0TIMxzGcIom0oG5KoqcupPp0767qWks1SFoU/5Jf1ia5qcUutFT1Mqz6l22qf1db3H4s0v/iyEht/9x0//9P//+gXv//6j1UCMjAliFTd1pL/80DECRVDRpR1wJgDk0lOizIJoGM0ATEFQjKk8TSC3QTdDfXv+jbV9mugnQSuccmwMDARiFnG5uboIv/dl6711f+r9LUzLDA4yKLf/VW3////a7OYiPxkWALSHAEJAupdSaBskbF0fP/zQsQPF2tKtH4DTv7UutToqL4TUOapkqI7is0PoropLQPl0ySoaadBNX/2UtklJGJgCvCfGZ5JSbK/nLf3ZKofZ1RWf/as0RWS3+6mTlY5THY1Pv//0mjYKhxyD04F4P////R61tNTqP/zQMQNFtNGjFVBaAKjqdSTJvYepKDyrRZzIvF1KpFlomD9l3dWtkfWjXalTZUtMwrQdpJMcWvq+/7LZ1JPX2U61spLdlJLOMMCasYos/qdBM1o7////9TrRWeqAI+lkkUXgAGl//////NCxAwXmmqAXYGIAKH1IGJg6BxqkoiAd8unYzQWHB6yi+YkBpJJGa3nFPWgz1t0VLnHHyUQHEfZcTUTx0mRzgIwTmSOtFFai9Z1GSlJGzpmVaaSl62sfZv/8vHkXfK1AWgBfIhCzCGY//NAxAkOoNnphcEYAkOIT5+L4x+q9VS4zFszdCgIFBVQd/VKnRKdg1/UDSg6vkYKwVljysS///9R5QdgqsFVTEFNRTMuOTkuM1VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=");
 const $ = (s) => document.querySelector(s);
-const setDomText = (el, text) => el.innerHTML = text;
+const setDomText = (el, text) => el.textContent = text;
 const setDomStyle = (el, property, value) => el.style[property] = value;
-const audioCache = new Map();
+const ttsMsg = new SpeechSynthesisUtterance(); // 创建语音合成实例
+const audioCache = new Map(); 
 const audio = {
     create: (word) => {
         if (audioCache.has(word)) return audioCache.get(word);
@@ -11,16 +12,39 @@ const audio = {
         audioCache.set(word, audio);
         return audio;
     },
-    play: async (sound) => {
-        await sound.play();
-        return new Promise(resolve => sound.onended = resolve);
-    },
-    playTwice: async (sound) => {
-        for (let i = 0; i < 2; i++) {
+    playAudio: async (sound, times = 2) => {
+        for (let i = 0; i < times; i++) {
             await sound.play();
             await new Promise(r => sound.onended = r);
             sound.currentTime = 0;
         }
+    },
+    stop: (sound) => {
+        if (sound) {
+            sound.pause();
+            sound.currentTime = 0;
+        }
+        speechSynthesis.cancel();
+    },
+    // Speak text with TTS
+    speak: (text) => {
+        // 除去词性标记、& 符号，并分割释义内容
+        const cleanText = text.replace(/[a-z]+\./g, '') // 删除词性标记如 'n.' 'v.' 等
+            .replace(/&/g, '') // 删除 & 符号
+            .split(/[;,]/) // 按分号和逗号分割
+            .filter((item, index, array) => array.indexOf(item) === index) // 去除重复项
+            .join(';'); // 用分号重新连接
+        ttsMsg.text = cleanText;
+        ttsMsg.voice = speechSynthesis.getVoices().find(voice => voice.name.includes(voiceSet.voice));
+        speechSynthesis.speak(ttsMsg);
+        speechSynthesis.pause();
+    },
+    playWordAndMeaning: async (sound, meaning) => {
+        if (voiceSet.paraphrase) audio.speak(meaning)
+        // 播放单词音频
+        await audio.playAudio(sound, voiceSet.loop);
+        // 恢复TTS播放
+        if (voiceSet.paraphrase) speechSynthesis.resume()
     }
 };
 const storage = {
@@ -41,7 +65,6 @@ const format = {
     percentage: (value, total) => total ? `${((value / total) * 100).toFixed(1)}%` : '100%',
     speed: (chars, seconds) => seconds ? Math.round(chars / seconds * 60) : '0',
 };
-
 const word = {
     dict: {},                    // 词典
     currentDict: storage.get('currentDict', 'basic'),// 当前词典
@@ -56,16 +79,20 @@ const word = {
     skippedWords: {},            // 未掌握单词
     correctWords: {},            // 已掌握单词
 };
-
 const game = {
     isDone: false,     // 是否完成练习
     isHidden: false,   // 是否隐藏单词
     isDark: storage.getBool('darkMode'),// 是否暗黑模式
     isReview: false,   // 是否复习模式
     timer: null,       // 计时器ID
-    wordsPerRound: 25  // 每轮单词数
+    wordsPerRound: 25,  // 每轮单词数
 };
-
+const voiceSet = {
+    loop: Number(storage.get('voiceLoop', '2')),
+    voice: storage.get('voiceType', 'Xiaoxiao'),
+    rate: Number(storage.get('voiceRate', '2.0')),
+    paraphrase: storage.getBool('paraphraseVoice') ?? true
+}
 const stats = {
     typed: 0,        // 已输入字符数
     correct: 0,      // 正确字符数
@@ -75,7 +102,22 @@ const stats = {
     time: 0,         // 用时(秒)
     typos: 0,        // 当前单词错误数
 };
-
+// 词性缩写及其对应的中文名称
+const partsOfSpeech = {
+    'n\.': '名',
+    'adj\.': '形容',
+    'v\.': '动',
+    'adv\.': '副',
+    'pron\.': '代',
+    'prep\.': '介',
+    'conj\.': '连',
+    'art\.': '冠',
+    'aux\.v\.': '助动',
+    'num\.': '数',
+    'pl\.': '复数',
+    'abbr\.': '缩写',
+    'vt\.': '及物动词'
+};
 const dom = {
     darkMode: $('.dark-mode-toggle'),
     diffSlider: $('.difficulty-slider'),
@@ -100,15 +142,20 @@ const dom = {
     progress: $('.progress-bar'),
     helpModal: $('.help-overlay'),
     helpClose: $('.help-close'),
-    dictLabel: $('.current-dict-name')
+    dictLabel: $('.current-dict-name'),
+    soundToggle: $('.sound-toggle'),
+    soundMenu: $('.sound-dropdown'),
+    loopSlider: $('#loopSlider'),
+    loopValue: $('#loopValue'),
+    voiceSelect: $('#voiceSelect'),
+    rateSlider: $('#rateSlider'),
+    rateValue: $('#rateValue'),
+    paraphraseVoice: $('#paraphraseVoiceToggle')
 };
-
 if (game.isDark) {
     document.body.classList.add('dark-mode');
     dom.darkMode.innerHTML = '☀️';
 }
-
-
 // 初始化单词列表
 function initializeWords(level) {
     // 根据模式选择单词库和处理逻辑
@@ -177,30 +224,24 @@ function init() {
     setDomStyle(dom.progress, 'width', '0%');
     dom.startHint.style.display = 'none';
     updateWord();
-    audio.playTwice(word.currentSound);
+    audio.playAudio(word.currentSound, voiceSet.loop);
     game.timer = setInterval(updateTimer, 1000);
 }
-switchDictionary(word.currentDict);
-
 // 切换词典
 async function switchDictionary(type) {
     // 如果当前是练习模式，先切换回正常模式
     if (game.isReview) toggleSkipWordsMode();
-
     // 激活状态
     document.querySelectorAll('.dictionary-option').forEach(el => { el.classList.remove('active') });
     word.currentDict = type;
-
     storage.set('currentDict', type);
     $(`.dictionary-option[data-type="${type}"]`).classList.add('active');
-
     // 更新词典名称显示
     const dictNames = {
         'basic': '基础英语词汇900',
         'cet4': '英语四级词库'
     };
     setDomText(dom.dictLabel, dictNames[type]);
-
     try {
         const response = await fetch(`${type}.json`);
         const data = await response.json();
@@ -213,15 +254,12 @@ async function switchDictionary(type) {
         dom.diffSlider.value = currentLevel;
         setDomText(dom.levelNum, currentLevel);
         setDomText(dom.levelVal, currentLevel);
-
         if (dom.startHint.style.display == 'none') init()
     } catch (error) {
         console.error('Error loading dictionary:', error);
         setDomText(dom.errText, '加载词典失败');
     }
 }
-
-
 // 更新计时器
 function updateTimer() {
     if (!game.isDone) {
@@ -230,63 +268,45 @@ function updateTimer() {
         setDomText(dom.speedVal, format.speed(stats.correct, stats.time));
     }
 }
-
-
 // 更新单词显示
 function updateWord() {
     const i = word.wordIndex;
     const offset = -i * 266 + 266; // wordWidth = 266 计算偏移量
     word.currentWord = word.selectedWords[i];
+    const paraphrase = word.dict[word.currentWord] // 获取释义
     stats.typed = 0; // 重置已输入字符数
     stats.failed = 0; // 重置错误单词数
     stats.typos = 0; // 重置错误计数
     dom.wordList.style.transform = `translateX(${offset}px)`; // 设置偏移量
     word.currentWordElement = word.wordElements[word.wordIndex];
-    setDomText(dom.paraphrase, highlightPartsOfSpeech(word.dict[word.currentWord])); // 显示释义
+    dom.paraphrase.innerHTML = highlightPartsOfSpeech(paraphrase);     // 显示释义
     if (i > 0) { // 切换活动类
         word.wordElements[i - 1].classList.remove('active');
         word.wordElements[i].classList.add('active');
         word.currentSound = word.nextSound; // 更新当前音频
         word.nextSound = audio.create(word.selectedWords[i + 1]); // 创建下一个单词音频
-        audio.playTwice(word.currentSound); // 播放当前单词音频两次
+        audio.playWordAndMeaning(word.currentSound, paraphrase); // 播放单词和释义
+    } else {
+        audio.playWordAndMeaning(word.currentSound, paraphrase); // 播放单词和释义
     }
 }
 // 高亮单词中的词性
 function highlightPartsOfSpeech(text) {
     if (!text) return '';
-    // 所有词性缩写及其完整形式
-    const partsOfSpeech = {
-        'n\.': '名',
-        'adj\.': '形容',
-        'v\.': '动',
-        'adv\.': '副',
-        'pron\.': '代',
-        'prep\.': '介',
-        'conj\.': '连',
-        'art\.': '冠',
-        'aux\.v\.': '助动',
-        'num\.': '数',
-        'pl\.': '复数',
-        'abbr\.': '缩写',
-        'vt\.': '及物动词',
-        '&': '和'
-    };
     // 创建正则表达式模式，匹配所有词性缩写
     const escapedKeys = Object.keys(partsOfSpeech).map(key => key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-    const pattern = new RegExp(
-        `(${escapedKeys.join('|')})`,
-        'g'
-    );
-    // 替换匹配到的词性缩写为带有样式的span
-    return text.replace(pattern, match => {
+    const pattern = new RegExp(`(${escapedKeys.join('|')})`, 'g');
+    // 替换匹配到的词性缩写为带有样式的span 
+    return text.replace(/&/g, '').replace(pattern, match => {
         // 获取完整的词性名称，如果没有则使用缩写本身
         const fullName = partsOfSpeech[match] || match;
         return `<span class="part-speech" title="${match}">${fullName}</span>`;
     });
 }
-
 // 进入下一个单词
 function nextWord() {
+    // 停止当前单词的音频播放
+    audio.stop(word.currentSound);
     if (word.wordIndex + 1 >= word.selectedWords.length) {
         if (game.isReview && word.skippedWords.length === 0) {
             setDomText(dom.errText, '恭喜！所有未掌握单词已完成练习！');
@@ -300,6 +320,8 @@ function nextWord() {
 }
 // 跳过当前单词
 function skipWord() {
+    // 停止当前单词的音频播放
+    audio.stop(word.currentSound);
     if (word.wordIndex + 1 >= word.selectedWords.length) return unitComplete(); // 处理打字完成
     const skippedWord = word.selectedWords[word.wordIndex];
     storage.saveToList('skippedWords', skippedWord, word.currentDict); // 保存到未掌握单词列表
@@ -387,7 +409,9 @@ function toggleDarkMode() {
 }
 // 更新进度级别
 function updateDifficulty(change = 0) {
-    word.dictProgress[word.currentDict] = Number(dom.diffSlider.value) + change;
+    let newLevel = Number(dom.diffSlider.value) + change;
+    newLevel = Math.min(Math.max(newLevel, 1), Number(dom.diffSlider.max));
+    word.dictProgress[word.currentDict] = newLevel;
     storage.set('dictProgress', JSON.stringify(word.dictProgress));
     dom.diffMenu.classList.remove('visible');
     init();
@@ -421,6 +445,29 @@ function clearSkippedWords() {
     word.skippedWords = [];
     setDomText(dom.errText, `已清除当前字典(${word.currentDict})未掌握单词`);
 }
+function updateVoiceSettings() {
+    voiceSet.loop = Number(dom.loopSlider.value);
+    voiceSet.voice = dom.voiceSelect.value;
+    voiceSet.rate = Number(dom.rateSlider.value);
+    voiceSet.paraphrase = dom.paraphraseVoice.checked;
+    storage.set('voiceLoop', voiceSet.loop);
+    storage.set('voiceType', voiceSet.voice);
+    storage.set('voiceRate', voiceSet.rate);
+    storage.set('paraphraseVoice', voiceSet.paraphrase);
+    ttsMsg.lang = 'zh-CN';
+    ttsMsg.rate = voiceSet.rate;
+    // 更新显示值
+    dom.loopValue.textContent = voiceSet.loop;
+    dom.rateValue.textContent = voiceSet.rate.toFixed(1);
+}
+// 添加语音设置初始化
+function initVoiceSettings() {
+    dom.loopSlider.value = voiceSet.loop;
+    dom.voiceSelect.value = voiceSet.voice;
+    dom.rateSlider.value = voiceSet.rate;
+    dom.paraphraseVoice.checked = voiceSet.paraphrase;
+    updateVoiceSettings();
+}
 document.addEventListener('keydown', (event) => {
     const { keyCode } = event;
     if (keyCode === 13) setDomText(dom.errText, word.currentWord); // 按回车键显示当前单词
@@ -445,3 +492,11 @@ dom.startHint.addEventListener('click', init); // 开始练习
 dom.diffToggle.addEventListener('click', () => dom.diffMenu.classList.toggle('visible')); // 显示/隐藏进度调整菜单
 document.addEventListener('click', (e) => { if (!e.target.closest('.difficulty-dropdown, .difficulty-toggle')) dom.diffMenu.classList.remove('visible') }); // 点击其他地方关闭进度菜单
 dom.wordList.addEventListener('click', (event) => { if (event.target.dataset.word) audio.create(event.target.dataset.word).play() }); // 点击单词播放音频
+dom.soundToggle.addEventListener('click', () => dom.soundMenu.classList.toggle('visible'));
+dom.loopSlider.addEventListener('input', updateVoiceSettings);
+dom.voiceSelect.addEventListener('change', updateVoiceSettings);
+dom.rateSlider.addEventListener('input', updateVoiceSettings);
+dom.paraphraseVoice.addEventListener('change', updateVoiceSettings);
+document.addEventListener('click', (e) => { if (!e.target.closest('.sound-dropdown, .sound-toggle')) dom.soundMenu.classList.remove('visible') });
+switchDictionary(word.currentDict);
+initVoiceSettings();
