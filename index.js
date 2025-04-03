@@ -3,7 +3,7 @@ const $ = (s) => document.querySelector(s);
 const setDomText = (el, text) => el.textContent = text;
 const setDomStyle = (el, property, value) => el.style[property] = value;
 const ttsMsg = new SpeechSynthesisUtterance(); // 创建语音合成实例
-const audioCache = new Map(); 
+const audioCache = new Map();
 const audio = {
     create: (word) => {
         if (audioCache.has(word)) return audioCache.get(word);
@@ -67,13 +67,15 @@ const format = {
 };
 const word = {
     dict: {},                    // 词典
-    currentDict: storage.get('currentDict', 'basic'),// 当前词典
+    isShuffled: storage.getBool('wordShuffled') ?? true,           // 是否打乱单词顺序
+    loopCount: Number(storage.get('wordLoopCount', '1')),   // 单词循环次数
+    currentDict: storage.get('currentDict', 'basic'),       // 当前词典
     dictProgress: JSON.parse(storage.get('dictProgress', '{"basic":1,"cet4":1}')),// 词典进度
     selectedWords: [],           // 选中待练习的单词列表
     wordElements: null,          // 单词DOM元素集合
     currentWord: '',             // 当前单词
-    currentWordElement: null,    // 当前单词DOM元素
-    wordIndex: 0,               // 当前单词索引
+    currWordEl: null,            // 当前单词DOM元素
+    wordIndex: 0,                // 当前单词索引
     currentSound: null,          // 当前单词音频
     nextSound: null,             // 下一个单词音频
     skippedWords: {},            // 未掌握单词
@@ -119,64 +121,67 @@ const partsOfSpeech = {
     'vt\.': '及物动词'
 };
 const dom = {
-    darkMode: $('.dark-mode-toggle'),
-    diffSlider: $('.difficulty-slider'),
-    diffMenu: $('.difficulty-dropdown'),
-    levelNum: $('.level-display'),
-    hideToggle: $('.hide-word-toggle'),
-    helpBtn: $('.help-button'),
-    skipToggle: $('.skip-mode-toggle'),
-    repeatToggle: $('.repeat-mode-toggle'),
-    restartBtn: $('.restart-button'),
-    errText: $('.error-text'),
-    wordList: $('#slider'),
-    paraphrase: $('.paraphrase'),
-    levelVal: $('.level-text'),
-    speedVal: $('.speed-text'),
-    correctVal: $('.correct-text'),
-    errWordVal: $('.error-word-text'),
-    rateVal: $('.correctrate-text'),
-    timeVal: $('.time-text'),
-    startHint: $('.start-prompt'),
-    diffToggle: $('.difficulty-toggle'),
-    progress: $('.progress-bar'),
-    helpModal: $('.help-overlay'),
-    helpClose: $('.help-close'),
-    dictLabel: $('.current-dict-name'),
-    soundToggle: $('.sound-toggle'),
-    soundMenu: $('.sound-dropdown'),
-    loopSlider: $('#loopSlider'),
-    loopValue: $('#loopValue'),
-    voiceSelect: $('#voiceSelect'),
-    rateSlider: $('#rateSlider'),
-    rateValue: $('#rateValue'),
-    paraphraseVoice: $('#paraphraseVoiceToggle')
+    darkMode: $('.dark-mode-toggle'), // 暗黑模式切换按钮
+    diffSlider: $('.difficulty-slider'), // 难度进度滑块
+    diffMenu: $('.difficulty-dropdown'), // 难度调整下拉菜单
+    levelNum: $('.level-display'), // 当前进度显示
+    hideToggle: $('.hide-word-toggle'), // 隐藏单词切换按钮
+    helpBtn: $('.help-button'), // 帮助按钮
+    skipToggle: $('.skip-mode-toggle'), // 未掌握单词练习模式切换按钮
+    repeatToggle: $('.repeat-mode-toggle'), // 重复模式切换按钮
+    restartBtn: $('.restart-button'), // 重新开始按钮
+    errText: $('.error-text'), // 错误提示文本
+    wordList: $('#slider'), // 单词列表容器
+    paraphrase: $('.paraphrase'), // 单词释义显示区域
+    levelVal: $('.level-text'), // 进度显示文本
+    speedVal: $('.speed-text'), // 速度显示文本
+    correctVal: $('.correct-text'), // 正确单词数显示文本
+    errWordVal: $('.error-word-text'), // 错误单词数显示文本
+    rateVal: $('.correctrate-text'), // 正确率显示文本
+    timeVal: $('.time-text'), // 用时显示文本
+    startHint: $('.start-prompt'), // 开始练习提示
+    diffToggle: $('.difficulty-toggle'), // 难度调整按钮
+    progress: $('.progress-bar'), // 进度条
+    helpModal: $('.help-overlay'), // 帮助窗口
+    helpClose: $('.help-close'), // 帮助窗口关闭按钮
+    dictLabel: $('.current-dict-name'), // 当前词典名称显示
+    soundToggle: $('.sound-toggle'), // 声音设置按钮
+    soundMenu: $('.sound-dropdown'), // 声音设置下拉菜单
+    wordLoopSlider: $('#word-Loop-Slider'),    // 练习时单词重复次数滑块
+    wordLoopValue: $('#word-Loop-Value'),      // 练习时单词重复次数显示
+    wordShuffled: $('#shuffled-words-Toggle'),//  单词打乱按钮
+    soundLoopSlider: $('#sound-Loop-Slider'),  // 单词发音次数滑块
+    soundLoopValue: $('#sound-Loop-Value'),    // 单词发音次数显示
+    voiceSelect: $('#voice-Select'),           // 释义发音人选择
+    rateSlider: $('#rate-Slider'),            // 释义发音语速滑块
+    rateValue: $('#rate-Value'),              // 释义发音语速显示
+    paraphraseVoice: $('#paraphrase-Voice-Toggle')  // 释义发音开关
 };
-if (game.isDark) {
-    document.body.classList.add('dark-mode');
-    dom.darkMode.innerHTML = '☀️';
-}
 // 初始化单词列表
 function initializeWords(level) {
-    // 根据模式选择单词库和处理逻辑
+    // 根据模式选择单词库和处理逻辑，word.dict是单词字典
     let wordBank = game.isReview ? word.skippedWords : Object.keys(word.dict);
     let selectedWords;
     if (game.isReview) {
         // 跳过模式:每个单词重复3次并打乱
-        selectedWords = Array(3).fill(wordBank).flat();
+        selectedWords = Array(3).fill(wordBank).flat();//创建一个长度为3的数组,每个数组使用wordBank填充，再扁平化
     } else {
         // 正常模式:从对应级别选取单词
         const start = (level - 1) * game.wordsPerRound;
         selectedWords = wordBank.slice(start, start + game.wordsPerRound);
+        selectedWords = selectedWords.flatMap(SingleWord => Array(word.loopCount).fill(SingleWord));//flatMap 会为每个单词创建一个重复的数组，然后将它们全部合并成一个一维数组。
     }
-    // 打乱单词顺序(Fisher-Yates shuffle)
-    const shuffled = [...selectedWords];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    if (word.isShuffled) {
+        // 打乱单词顺序(Fisher-Yates shuffle)
+        const shuffled = [...selectedWords];//创建 selectedWords 数组的一个完整副本。
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        word.selectedWords = shuffled;
+    } else {
+        word.selectedWords = selectedWords
     }
-    // 选择指定数量的单词
-    word.selectedWords = shuffled.slice(0, Math.min(game.wordsPerRound, shuffled.length));
     word.currentWord = word.selectedWords[0];
     // 生成待练习单词 DOM 并初始化音频
     let html = `<div class="word active" data-word="${word.currentWord}">${word.currentWord}</div>`;
@@ -278,7 +283,7 @@ function updateWord() {
     stats.failed = 0; // 重置错误单词数
     stats.typos = 0; // 重置错误计数
     dom.wordList.style.transform = `translateX(${offset}px)`; // 设置偏移量
-    word.currentWordElement = word.wordElements[word.wordIndex];
+    word.currWordEl = word.wordElements[word.wordIndex];
     dom.paraphrase.innerHTML = highlightPartsOfSpeech(paraphrase);     // 显示释义
     if (i > 0) { // 切换活动类
         word.wordElements[i - 1].classList.remove('active');
@@ -359,7 +364,7 @@ function checkTyping(key) {
         stats.correct++; // 增加正确字符数
         stats.typed++; // 增加已输入字符数
         setDomText(dom.errText, ''); // 清空错误提示
-        word.currentWordElement.innerHTML = stats.typed ? `<span class="typed">${current.substring(0, stats.typed)}</span>${current.substring(stats.typed)}` : current// 高亮已经输入的字母
+        word.currWordEl.innerHTML = stats.typed ? `<span class="typed">${current.substring(0, stats.typed)}</span>${current.substring(stats.typed)}` : current// 高亮已经输入的字母
         if (stats.typed === current.length) {
             stats.done++; // 增加已完成单词数
             if (game.isReview && game.isHidden) {
@@ -397,7 +402,7 @@ function updateStats() {
     setDomText(dom.correctVal, stats.done);
     setDomText(dom.errWordVal, stats.failed);
     setDomText(dom.rateVal, format.percentage(stats.correct, total));
-    const progress = `${((stats.done + stats.failed) / game.wordsPerRound) * 100}%`;
+    const progress = `${((stats.done + stats.failed) / (game.wordsPerRound * word.loopCount)) * 100}%`;
     setDomStyle(dom.progress, 'width', progress);
 }
 // 切换暗黑模式
@@ -445,58 +450,77 @@ function clearSkippedWords() {
     word.skippedWords = [];
     setDomText(dom.errText, `已清除当前字典(${word.currentDict})未掌握单词`);
 }
-function updateVoiceSettings() {
-    voiceSet.loop = Number(dom.loopSlider.value);
-    voiceSet.voice = dom.voiceSelect.value;
-    voiceSet.rate = Number(dom.rateSlider.value);
-    voiceSet.paraphrase = dom.paraphraseVoice.checked;
-    storage.set('voiceLoop', voiceSet.loop);
-    storage.set('voiceType', voiceSet.voice);
-    storage.set('voiceRate', voiceSet.rate);
-    storage.set('paraphraseVoice', voiceSet.paraphrase);
-    ttsMsg.lang = 'zh-CN';
-    ttsMsg.rate = voiceSet.rate;
-    // 更新显示值
-    dom.loopValue.textContent = voiceSet.loop;
-    dom.rateValue.textContent = voiceSet.rate.toFixed(1);
-}
-// 添加语音设置初始化
-function initVoiceSettings() {
-    dom.loopSlider.value = voiceSet.loop;
+// 设置初始化
+function initSettings() {
+    switchDictionary(word.currentDict);
+    if (game.isDark) {
+        document.body.classList.add('dark-mode');
+        dom.darkMode.innerHTML = '☀️';
+    }
+    dom.darkMode.addEventListener('click', toggleDarkMode); // 切换暗黑模式
+    dom.skipToggle.addEventListener('click', toggleSkipWordsMode); // 切换未掌握单词练习模式
+    dom.helpBtn.addEventListener('click', () => dom.helpModal.style.display = 'flex'); // 显示帮助窗口
+    dom.helpClose.addEventListener('click', () => dom.helpModal.style.display = 'none'); // 关闭帮助窗口
+    dom.diffSlider.addEventListener('input', () => setDomText(dom.levelNum, dom.diffSlider.value)); // 更新进度显示
+    dom.diffSlider.addEventListener('change', () => updateDifficulty(0)); // 更新进度级别
+    dom.hideToggle.addEventListener('click', toggleHideWord); // 切换隐藏单词模式
+    dom.restartBtn.addEventListener('click', init); // 重新开始练习
+    dom.startHint.addEventListener('click', init); // 开始练习
+    dom.diffToggle.addEventListener('click', () => dom.diffMenu.classList.toggle('visible')); // 显示/隐藏进度调整菜单
+    dom.wordList.addEventListener('click', (event) => { if (event.target.dataset.word) audio.create(event.target.dataset.word).play() }); // 点击单词播放音频
+    dom.soundToggle.addEventListener('click', () => dom.soundMenu.classList.toggle('visible'));// 显示/隐藏声音设置菜单
+    dom.wordLoopSlider.addEventListener('input', () => {// 单词练习次数滑块
+        word.loopCount = Number(dom.wordLoopSlider.value);
+        storage.set('wordLoopCount', word.loopCount);
+        dom.wordLoopValue.textContent = word.loopCount;
+        init();
+    });
+    dom.soundLoopSlider.addEventListener('input', () => {// 声音循环次数
+        voiceSet.loop = Number(dom.soundLoopSlider.value);
+        voiceSet.voice = dom.voiceSelect.value;
+        storage.set('voiceLoop', voiceSet.loop);
+        dom.soundLoopValue.textContent = voiceSet.loop;
+    });
+    dom.voiceSelect.addEventListener('change', storage.set('voiceType', voiceSet.voice)); // 语音选择下拉菜单
+    dom.rateSlider.addEventListener('input', () => {// 语音语速滑块
+        voiceSet.rate = Number(dom.rateSlider.value);
+        storage.set('voiceRate', voiceSet.rate);
+        dom.rateValue.textContent = voiceSet.rate.toFixed(1);
+        ttsMsg.rate = voiceSet.rate;
+    });
+    dom.paraphraseVoice.addEventListener('change', () => {// 释义发音开关
+        voiceSet.paraphrase = dom.paraphraseVoice.checked;
+        storage.set('paraphraseVoice', voiceSet.paraphrase);
+    });
+    dom.wordShuffled.addEventListener('change', () => {// 单词乱序开关
+        word.isShuffled = dom.wordShuffled.checked;
+        storage.set('wordShuffled', word.isShuffled);
+        init();
+    });
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.controls')) {
+            dom.diffMenu.classList.remove('visible');
+            dom.soundMenu.classList.remove('visible');
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        const { keyCode } = event;
+        if (keyCode === 13) setDomText(dom.errText, word.currentWord); // 按回车键显示当前单词
+        else if (keyCode === 220) word.currentSound.play(); // 按\键播放当前单词音频
+        else if (keyCode === 27) toggleHideWord(); // 按ESC键切换隐藏/显示单词模式
+        else if (keyCode === 35) clearSkippedWords(); // 按End键清除跳过的单词
+        else if (keyCode === 39 && game.isHidden) skipWord(); // 在隐藏模式下按右箭头跳过当前单词
+        else if (keyCode === 37 && game.isHidden) goBackWord(); // 在隐藏模式下按左箭头返回上一个单词
+        else if (keyCode === 38) updateDifficulty(1); // 按上箭头键增加进度
+        else if (keyCode === 40) updateDifficulty(-1); // 按下箭头键减少进度 
+        else if (keyCode >= 65 && keyCode <= 90) checkTyping(String.fromCharCode(keyCode)); // 处理A-Z字母键的输入
+    });
+    dom.soundLoopSlider.value = voiceSet.loop;
     dom.voiceSelect.value = voiceSet.voice;
     dom.rateSlider.value = voiceSet.rate;
     dom.paraphraseVoice.checked = voiceSet.paraphrase;
-    updateVoiceSettings();
+    dom.wordShuffled.checked = word.isShuffled;
+    dom.soundLoopValue.textContent = voiceSet.loop;
+    ttsMsg.lang = 'zh-CN';
 }
-document.addEventListener('keydown', (event) => {
-    const { keyCode } = event;
-    if (keyCode === 13) setDomText(dom.errText, word.currentWord); // 按回车键显示当前单词
-    else if (keyCode === 220) word.currentSound.play(); // 按\键播放当前单词音频
-    else if (keyCode === 27) toggleHideWord(); // 按ESC键切换隐藏/显示单词模式
-    else if (keyCode === 35) clearSkippedWords(); // 按End键清除跳过的单词
-    else if (keyCode === 39 && game.isHidden) skipWord(); // 在隐藏模式下按右箭头跳过当前单词
-    else if (keyCode === 37 && game.isHidden) goBackWord(); // 在隐藏模式下按左箭头返回上一个单词
-    else if (keyCode === 38) updateDifficulty(1); // 按上箭头键增加进度
-    else if (keyCode === 40) updateDifficulty(-1); // 按下箭头键减少进度 
-    else if (keyCode >= 65 && keyCode <= 90) checkTyping(String.fromCharCode(keyCode)); // 处理A-Z字母键的输入
-});
-dom.darkMode.addEventListener('click', toggleDarkMode); // 切换暗黑模式
-dom.skipToggle.addEventListener('click', toggleSkipWordsMode); // 切换未掌握单词练习模式
-dom.helpBtn.addEventListener('click', () => dom.helpModal.style.display = 'flex'); // 显示帮助窗口
-dom.helpClose.addEventListener('click', () => dom.helpModal.style.display = 'none'); // 关闭帮助窗口
-dom.diffSlider.addEventListener('input', () => setDomText(dom.levelNum, dom.diffSlider.value)); // 更新进度显示
-dom.diffSlider.addEventListener('change', () => updateDifficulty(0)); // 更新进度级别
-dom.hideToggle.addEventListener('click', toggleHideWord); // 切换隐藏单词模式
-dom.restartBtn.addEventListener('click', init); // 重新开始练习
-dom.startHint.addEventListener('click', init); // 开始练习
-dom.diffToggle.addEventListener('click', () => dom.diffMenu.classList.toggle('visible')); // 显示/隐藏进度调整菜单
-document.addEventListener('click', (e) => { if (!e.target.closest('.difficulty-dropdown, .difficulty-toggle')) dom.diffMenu.classList.remove('visible') }); // 点击其他地方关闭进度菜单
-dom.wordList.addEventListener('click', (event) => { if (event.target.dataset.word) audio.create(event.target.dataset.word).play() }); // 点击单词播放音频
-dom.soundToggle.addEventListener('click', () => dom.soundMenu.classList.toggle('visible'));
-dom.loopSlider.addEventListener('input', updateVoiceSettings);
-dom.voiceSelect.addEventListener('change', updateVoiceSettings);
-dom.rateSlider.addEventListener('input', updateVoiceSettings);
-dom.paraphraseVoice.addEventListener('change', updateVoiceSettings);
-document.addEventListener('click', (e) => { if (!e.target.closest('.sound-dropdown, .sound-toggle')) dom.soundMenu.classList.remove('visible') });
-switchDictionary(word.currentDict);
-initVoiceSettings();
+initSettings();
