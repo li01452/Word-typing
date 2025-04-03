@@ -116,6 +116,7 @@
         .difficulty-slider {
             width: 200px;
             accent-color: var(--primary-color);
+            background: var(--secondary-bg);
         }
 
         .main-container {
@@ -409,10 +410,7 @@
             color: var(--text-color);
         }
 
-        .sound-option input[type="range"] {
-            width: 100%;
-            accent-color: var(--primary-color);
-        }
+
 
         .switch-container {
             display: flex;
@@ -478,6 +476,16 @@
                 <div class="difficulty-dropdown">
                     <p>进度: <span class="level-display">5</span></p>
                     <input type="range" class="difficulty-slider" min="1" max="40" value="20">
+                    <p>练习时单词重复次数: <span id="word-Loop-Value">1</span></p>
+                    <input type="range" class="difficulty-slider" id="word-Loop-Slider" min="1" max="9" step="1"
+                        value="1">
+                    <div class="switch-container">
+                        <p>单词乱序</p>
+                        <label class="switch">
+                            <input type="checkbox" id="shuffled-words-Toggle" checked>
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
                     <div id="dictionary-switch">
                         <div class="dictionary-option" data-type="basic" onclick="switchDictionary('basic')">
                             <h1>基础英语词汇</h1>
@@ -498,25 +506,27 @@
                 <button class="sound-toggle" title="声音设置">🔈</button>
                 <div class="sound-dropdown">
                     <div class="sound-option">
-                        <p>单词发音次数: <span id="loopValue">1</span></p>
-                        <input type="range" id="loopSlider" min="0" max="5" step="1" value="1">
+                        <p>单词发音次数: <span id="sound-Loop-Value">1</span></p>
+                        <input type="range" class="difficulty-slider" id="sound-Loop-Slider" min="0" max="5" step="1"
+                            value="1">
                     </div>
                     <div class="sound-option">
                         <div class="switch-container">
                             <p>释义发音:</p>
                             <label class="switch">
-                                <input type="checkbox" id="paraphraseVoiceToggle" checked>
+                                <input type="checkbox" id="paraphrase-Voice-Toggle" checked>
                                 <span class="slider-switch"></span>
                             </label>
                         </div>
                     </div>
                     <div class="sound-option">
-                        <p>释义发音语速: <span id="rateValue">1.0</span></p>
-                        <input type="range" id="rateSlider" min="0.5" max="5" step="0.1" value="2.0">
+                        <p>释义发音语速: <span id="rate-Value">1.0</span></p>
+                        <input type="range" class="difficulty-slider" id="rate-Slider" min="0" max="5" step="0.1"
+                            value="2.0">
                     </div>
                     <div class="sound-option">
                         <p>释义发音人:</p>
-                        <select id="voiceSelect">
+                        <select id="voice-Select">
                             <option value="Xiaoxiao">Xiaoxiao - Chinese</option>
                         </select>
                     </div>
@@ -543,7 +553,6 @@
                             <li>点击“开始练习”区域开始训练</li>
                             <li>每次随机筛选25个单词练习</li>
                             <li>单词听写时，输入错误5次单词会加入未掌握单词库</li>
-                            <li>进度级别共40级,每级别25词</li>
                             <li>练习完成之后进度自动提升</li>
                             <li>未掌握单词练习中若同时开启隐藏单词模式听写，输入正确3次可从未掌握单词中清除该单词，下次练习时就不会有该单词了</li>
                         </ul>
