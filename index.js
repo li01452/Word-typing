@@ -77,10 +77,10 @@ const format = {
 const game = {
     isDone: false,      // 是否完成练习
     isHidden: false,    // 是否隐藏单词
-    isDark: storage.getBool('darkMode'), // 是否暗黑模式
     isReview: false,    // 是否复习模式
     timer: null,        // 计时器ID
     wordsPerRound: 25,  // 每轮单词数
+    isDark: storage.getBool('darkMode'), // 是否暗黑模式
 };
 
 // 语音设置
@@ -113,7 +113,7 @@ const partsOfSpeech = {
     'prep.': '介',
     'conj.': '连',
     'art.': '冠',
-    'aux.v.': '助动',
+    'aux.': '助动',
     'num.': '数',
     'pl.': '复数',
     'abbr.': '缩写',
@@ -122,12 +122,6 @@ const partsOfSpeech = {
 
 // 单词相关状态和配置
 const word = {
-    isShuffled: storage.getBool('wordShuffled') ?? true,    // 是否打乱单词顺序
-    loopCount: Number(storage.get('wordLoopCount', '1')),   // 单词循环次数
-    currentDict: storage.get('currentDict', 'basic'),       // 当前词典
-    dictProgress: JSON.parse(storage.get('dictProgress', '{"basic":1,"cet4":1}')), // 词典进度
-    knownWords: JSON.parse(storage.get('knownWords', '[]')), // 已掌握单词列表
-    skippedWords: JSON.parse(storage.get('skippedWords', '[]')), // 未掌握单词改为数组
     dict: {},                     // 词典数据
     selectedWords: [],            // 选中待练习的单词列表
     wordElements: null,           // 单词DOM元素集合
@@ -137,6 +131,12 @@ const word = {
     currentSound: null,           // 当前单词音频
     nextSound: null,              // 下一个单词音频
     correctWords: {},             // 已掌握单词
+    isShuffled: storage.getBool('wordShuffled') ?? true,    // 是否打乱单词顺序
+    loopCount: Number(storage.get('wordLoopCount', '1')),   // 单词循环次数
+    currentDict: storage.get('currentDict', 'basic'),       // 当前词典
+    dictProgress: JSON.parse(storage.get('dictProgress', '{"basic":1,"cet4":1}')), // 词典进度
+    knownWords: JSON.parse(storage.get('knownWords', '[]')),        // 已掌握单词列表
+    unknownWords: JSON.parse(storage.get('skippedWords', '[]'))     // 未掌握单词改为数组
 };
 
 
@@ -148,7 +148,7 @@ const dom = {
     levelNum: $('.level-display'),              // 当前进度显示
     hideToggle: $('.hide-word-toggle'),         // 隐藏单词切换按钮
     helpBtn: $('.help-button'),                 // 帮助按钮
-    skipToggle: $('.skip-mode-toggle'),         // 未掌握单词练习模式切换按钮
+    reviewToggle: $('.review-mode-toggle'),     // 未掌握单词练习模式切换按钮
     repeatToggle: $('.repeat-mode-toggle'),     // 重复模式切换按钮
     restartBtn: $('.restart-button'),           // 重新开始按钮
     errText: $('.error-text'),                  // 错误提示文本
@@ -161,7 +161,7 @@ const dom = {
     rateVal: $('.correctrate-text'),            // 正确率显示文本
     timeVal: $('.time-text'),                   // 用时显示文本
     startHint: $('.start-prompt'),              // 开始练习提示
-    diffToggle: $('.difficulty-toggle'),        // 难度调整按钮
+    setupToggle: $('.difficulty-toggle'),       // 设置按钮
     progress: $('.progress-bar'),               // 进度条
     helpModal: $('.help-overlay'),              // 帮助窗口
     helpClose: $('.help-close'),                // 帮助窗口关闭按钮
@@ -182,12 +182,11 @@ const dom = {
 // 初始化单词列表
 function initializeWords(level) {
     // 根据模式选择单词库和处理逻辑
-    let wordBank = game.isReview ? word.skippedWords : Object.keys(word.dict);
+    let wordBank = game.isReview ? word.unknownWords : Object.keys(word.dict);
     let selectedWords;
 
     if (game.isReview) {
-        // 复习模式：每个单词重复3次并打乱
-        selectedWords = Array(3).fill(wordBank).flat();
+        selectedWords = wordBank.flatMap(singleWord => Array(word.loopCount).fill(singleWord));
     } else {
         // 正常模式：从对应级别选取单词，并与knownWords去重
         const start = (level - 1) * game.wordsPerRound;
@@ -232,14 +231,7 @@ function initializeWords(level) {
 // 初始化练习
 function init() {
     clearInterval(game.timer); // 清除计时器
-    const wasHidden = game.isHidden; // 保存隐藏状态
-
-    // 重置游戏状态
-    Object.assign(game, {
-        isDone: false,
-        isHidden: wasHidden
-    });
-
+    game.isDone = false;       // 重置完成状态
     // 重置统计数据
     Object.assign(stats, {
         time: 0,
@@ -251,10 +243,8 @@ function init() {
     });
 
     // 重置单词状态
-    Object.assign(word, {
-        selectedWords: [],
-        wordIndex: 0
-    });
+    word.selectedWords = [];
+    word.wordIndex = 0;
 
     // 读取当前字典的进度
     const level = game.isReview ? 0 : word.dictProgress[word.currentDict];
@@ -279,12 +269,14 @@ function init() {
     updateWord();
     audio.playAudio(word.currentSound, voiceSet.loop);
     game.timer = setInterval(updateTimer, 1000);
+
+    word.wordElements.forEach(el => el.classList.toggle('hidden-text', game.isHidden));
 }
 
 // 切换词典
 async function switchDictionary(type) {
     // 如果当前是练习模式，先切换回正常模式
-    if (game.isReview) toggleSkipWordsMode();
+    if (game.isReview) reviewWords();
 
     // 更新UI激活状态
     document.querySelectorAll('.dictionary-option').forEach(el => {
@@ -297,7 +289,7 @@ async function switchDictionary(type) {
 
     // 更新词典名称显示
     const dictNames = {
-        'basic': '基础英语词汇900',
+        'basic': '基础英语词汇1000',
         'cet4': '英语四级词库'
     };
     setDomText(dom.dictLabel, dictNames[type]);
@@ -389,13 +381,12 @@ function highlightPartsOfSpeech(text) {
 function nextWord() {
     // 停止当前单词的音频播放
     audio.stop(word.currentSound);
-
     // 检查是否已完成所有单词
     if (word.wordIndex + 1 >= word.selectedWords.length) {
-        if (game.isReview && Object.keys(word.skippedWords).length === 0) {
+        if (game.isReview && Object.keys(word.unknownWords).length === 0) {
             setDomText(dom.errText, '恭喜！所有未掌握单词已完成练习！');
             game.isReview = false;
-            dom.skipToggle.textContent = '🎯';
+            dom.reviewToggle.textContent = '🎯';
         }
         return unitComplete(); // 处理练习完成
     }
@@ -414,9 +405,9 @@ function skipWord() {
 
     // 保存跳过的单词到数组
     const skippedWord = word.selectedWords[word.wordIndex];
-    if (!word.skippedWords.includes(skippedWord)) {
-        word.skippedWords.push(skippedWord);
-        storage.set('skippedWords', JSON.stringify(word.skippedWords));
+    if (!word.unknownWords.includes(skippedWord)) {
+        word.unknownWords.push(skippedWord);
+        storage.set('skippedWords', JSON.stringify(word.unknownWords));
     }
     setDomText(dom.errText, `单词 ${skippedWord} 已标记为未掌握`);
 
@@ -458,18 +449,23 @@ function unitComplete() {
 // 处理打字输入
 function checkTyping(key) {
     if (game.isDone) return;
-
     const current = word.currentWord;
     const expected = current.charAt(stats.typed).toUpperCase();
+    console.log(expected, key);
 
     if (expected === key) {
         stats.correct++;
         stats.typed++;
+        console.log(`正确输入key: ${key} expected: ${expected}`);
+
+        if (key === ' ') stats.typed = stats.typed + 5; // 处理空格输入
         setDomText(dom.errText, '');
 
-        word.currWordEl.innerHTML = stats.typed ?
+        const html = stats.typed ?
             `<span class="typed">${current.substring(0, stats.typed)}</span>${current.substring(stats.typed)}` :
             current;
+        const encodeSpaces = html.replace(" ", "&nbsp;");
+        word.currWordEl.innerHTML = encodeSpaces
 
         if (stats.typed === current.length) {
             stats.done++;
@@ -489,7 +485,6 @@ function checkTyping(key) {
                     return;
                 }
             }
-
             nextWord();
         }
     } else {
@@ -497,7 +492,59 @@ function checkTyping(key) {
         stats.typos++;
         setDomText(dom.errText, `按键错误: ${key}`);
 
-        if (typeof beep !== 'undefined') beep.play();
+        beep.play();
+
+        if (stats.typos > 4) {
+            setDomText(dom.errText, `错误次数过多，标记为未掌握单词：${current}`);
+            skipWord();
+            stats.failed++;
+        }
+    }
+
+    updateStats();
+}
+
+
+// 处理打字输入
+function checkTyping(key) {
+    if (game.isDone) return;
+    const current = word.currentWord;
+    const expected = current.charAt(stats.typed).toUpperCase();
+    console.log(expected, key);
+
+    if (expected === key) {
+        stats.correct++;
+        stats.typed++;
+        setDomText(dom.errText, '');
+        const html = stats.typed ? `<span class="typed">${current.substring(0, stats.typed)}</span>${current.substring(stats.typed)}` : current;
+        word.currWordEl.innerHTML = '<span class="typed">' + html.replace(/ /g, '&nbsp;'); // 替换空格为 &nbsp;
+
+        if (stats.typed === current.length) {
+            stats.done++;
+
+            if (game.isReview && game.isHidden) {
+                word.correctWords[current] = (word.correctWords[current] || 0) + 1;
+
+                if (word.correctWords[current] > 3) {
+                    word.unknownWords = word.unknownWords.filter(w => w !== current);
+                    storage.set('skippedWords', JSON.stringify(word.unknownWords));
+
+                    setDomText(dom.errText, `已掌握单词：${current}`);
+                    setTimeout(() => {
+                        setDomText(dom.errText, '');
+                        nextWord();
+                    }, 1000);
+                    return;
+                }
+            }
+            nextWord();
+        }
+    } else {
+        stats.errors += expected;
+        stats.typos++;
+        setDomText(dom.errText, `按键错误: ${key}`);
+
+        beep.play();
 
         if (stats.typos > 4) {
             setDomText(dom.errText, `错误次数过多，标记为未掌握单词：${current}`);
@@ -530,6 +577,7 @@ function toggleDarkMode() {
     document.body.classList.toggle('dark-mode', game.isDark);
     dom.darkMode.textContent = game.isDark ? '☀️' : '🌙';
     storage.set('darkMode', game.isDark);
+    this.blur();
 }
 
 // 更新进度级别
@@ -552,29 +600,32 @@ function toggleHideWord() {
     dom.hideToggle.textContent = game.isHidden ? '👀' : '🙈';
 
     // 根据隐藏状态切换类
+    dom.wordLoopSlider.value = 1;
+    updateWordCount();
     word.wordElements.forEach(el => el.classList.toggle('hidden-text', game.isHidden));
 }
 
-// 切换未掌握单词模式
-function toggleSkipWordsMode() {
+// 切换复习单词模式
+function reviewWords() {
     // skippedWords 已改为数组，无需从对象中取特定字典的值
-    if (word.skippedWords.length === 0) {
+    if (word.unknownWords.length === 0) {
         setDomText(dom.errText, `当前字典(${word.currentDict})没有未掌握的单词,请继续练习`);
-        dom.skipToggle.textContent = '🎯';
+        dom.reviewToggle.textContent = '🎯';
         return;
     }
-
+    this.blur();
     game.isReview = !game.isReview;
-    dom.skipToggle.textContent = game.isReview ? '📚' : '🎯';
+    dom.reviewToggle.textContent = game.isReview ? '📚' : '🎯';
 
     dom.diffSlider.style.display = game.isReview ? 'none' : 'block';
     init();
+    
 }
 
 // 清除未掌握单词
 function clearSkippedWords() {
-    word.skippedWords = [];
-    storage.set('skippedWords', JSON.stringify(word.skippedWords));
+    word.unknownWords = [];
+    storage.set('skippedWords', JSON.stringify(word.unknownWords));
     setDomText(dom.errText, `已清除当前字典(${word.currentDict})未掌握单词`);
 }
 
@@ -592,11 +643,11 @@ function knownWord() {
     const currentWord = word.currentWord;
     const oldIndex = word.wordIndex; // Store the old index
 
-    // Count how many instances of currentWord appear before oldIndex
+    // 计算在oldIndex之前出现了多少个currentWord实例
     const removedCount = word.selectedWords.slice(0, oldIndex).filter(w => w === currentWord).length;
 
     word.selectedWords = word.selectedWords.filter(w => w !== currentWord);
-    // Adjust the index based on how many words were removed before it
+    //根据之前删除的单词数调整索引
     word.wordIndex = Math.max(0, oldIndex - removedCount);
 
     // 如果已经是最后一个单词
@@ -621,6 +672,12 @@ function knownWord() {
     updateWord();
 }
 
+function updateWordCount() {
+    word.loopCount = Number(dom.wordLoopSlider.value);
+    storage.set('wordLoopCount', word.loopCount);
+    dom.wordLoopValue.textContent = word.loopCount;
+    init();
+}
 // 设置初始化
 function initSettings() {
     // 加载字典
@@ -633,19 +690,19 @@ function initSettings() {
     }
 
     // 设置事件监听器
-    bindEvent(dom.darkMode, 'click', toggleDarkMode); // 切换深色模式
-    bindEvent(dom.skipToggle, 'click', toggleSkipWordsMode);// 切换未掌握单词模式
-    bindEvent(dom.helpBtn, 'click', () => dom.helpModal.style.display = 'flex');// 显示帮助窗口
-    bindEvent(dom.helpClose, 'click', () => dom.helpModal.style.display = 'none');// 关闭帮助窗口
-    bindEvent(dom.diffSlider, 'input', () => setDomText(dom.levelNum, dom.diffSlider.value));// 更新难度级别显示
-    bindEvent(dom.diffSlider, 'change', () => updateDifficulty(0));// 更新难度级别
-    bindEvent(dom.hideToggle, 'click', toggleHideWord);// 切换隐藏单词模式
-    bindEvent(dom.restartBtn, 'click', init);// 重新开始练习
-    bindEvent(dom.startHint, 'click', init);// 开始练习
-    bindEvent(dom.diffToggle, 'click', () => dom.diffMenu.classList.toggle('visible'));// 切换难度菜单
+    bindEvent(dom.darkMode, 'click', toggleDarkMode);               // 切换深色模式
+    bindEvent(dom.reviewToggle, 'click', reviewWords);              // 切换复习模式
+    bindEvent(dom.hideToggle, 'click', toggleHideWord);             // 切换隐藏单词模式
+    bindEvent(dom.restartBtn, 'click', init);                       // 重新开始练习
+    bindEvent(dom.startHint, 'click', init);                        // 开始练习
+    bindEvent(dom.diffSlider, 'change', () => updateDifficulty(0)); // 更新难度级别
+    bindEvent(dom.helpBtn, 'click', () => dom.helpModal.style.display = 'flex');                // 显示帮助窗口
+    bindEvent(dom.helpClose, 'click', () => dom.helpModal.style.display = 'none');              // 关闭帮助窗口
+    bindEvent(dom.diffSlider, 'input', () => setDomText(dom.levelNum, dom.diffSlider.value));   // 更新难度级别显示
+    bindEvent(dom.setupToggle, 'click', () => dom.diffMenu.classList.toggle('visible'));         // 切换难度菜单
+    bindEvent(dom.soundToggle, 'click', () => dom.soundMenu.classList.toggle('visible'));       // 切换声音设置菜单
+    bindEvent(dom.voiceSelect, 'change', () => storage.set('voiceType', voiceSet.voice));       // 更新声音类型
     bindEvent(dom.wordList, 'click', (event) => { if (event.target.dataset.word) audio.create(event.target.dataset.word).play() });// 播放单词音频
-    bindEvent(dom.soundToggle, 'click', () => dom.soundMenu.classList.toggle('visible'));// 切换声音设置菜单
-    bindEvent(dom.voiceSelect, 'change', () => storage.set('voiceType', voiceSet.voice));// 更新声音类型
     bindEvent(dom.wordLoopSlider, 'input', () => {// 更新单词循环次数
         word.loopCount = Number(dom.wordLoopSlider.value);
         storage.set('wordLoopCount', word.loopCount);
@@ -678,6 +735,7 @@ function initSettings() {
         if (!e.target.closest('.controls')) {
             dom.diffMenu.classList.remove('visible');
             dom.soundMenu.classList.remove('visible');
+            this.blur();
         }
     });
     bindEvent(document, 'keydown', (event) => {
@@ -690,8 +748,9 @@ function initSettings() {
         else if (keyCode === 37 && game.isHidden) goBackWord();// 左箭头键返回上一个单词
         else if (keyCode === 38) updateDifficulty(1);// 上箭头键增加难度
         else if (keyCode === 40) updateDifficulty(-1);// 下箭头键降低难度
-        else if (keyCode === 32) knownWord();// 空格键标记为已掌握
-        else if (keyCode >= 65 && keyCode <= 90) checkTyping(String.fromCharCode(keyCode));
+        else if (keyCode === 9) knownWord();// tab键标记为已掌握
+        else if ((keyCode >= 65 && keyCode <= 90 || keyCode == 32)) checkTyping(String.fromCharCode(keyCode));// 处理字母和空格输入
+        else if (keyCode == 222) checkTyping("'"); // 处理单引号输入
     });
     dom.soundLoopSlider.value = voiceSet.loop;
     dom.voiceSelect.value = voiceSet.voice;
