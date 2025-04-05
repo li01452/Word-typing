@@ -501,7 +501,7 @@
             <button class="hide-word-toggle" title="隐藏/显示单词">🙈</button>
             <button class="restart-button" title="重新开始">🔄</button>
             <button class="help-button" title="帮助">❔</button>
-            <button class="skip-mode-toggle" title="未掌握单词练习">🎯</button>
+            <button class="review-mode-toggle" title="复习模式">🎯</button>
             <div class="dropdown">
                 <button class="sound-toggle" title="声音设置">🔈</button>
                 <div class="sound-dropdown">
@@ -564,9 +564,11 @@
                             <p><span class="key">\</span> 播放当前单词音频</p>
                             <p><span class="key">Esc</span> 切换隐藏模式</p>
                             <p><span class="key">End</span> 清除跳过的单词</p>
-                            <p><span class="key">→</span> 跳过当前未掌握的单词</p>
+                            <p><span class="key">→</span> 跳过当前单词</p>
                             <p><span class="key">←</span> 返回上个单词</p>
                             <p><span class="key">↑</span> 进度级别+1</p>
+                            <p><span class="key">↓</span> 进度级别-1</p>
+                            <p><span class="key">Tab</span>标记已掌握单词，练习中不会再出现该单词</p>
                         </ul>
                     </section>
                 </div>
@@ -603,6 +605,7 @@
             </div>
         </div>
     </div>
+
 </body>
 
 <script src="index.js"></script>
