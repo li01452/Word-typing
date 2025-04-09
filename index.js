@@ -311,7 +311,6 @@ async function switchDictionary(type) {
         // 如果已开始练习，重新初始化
         if (dom.startHint.style.display == 'none') init();
     } catch (error) {
-        console.error('Error loading dictionary:', error);
         setDomText(dom.errText, '加载词典失败');
     }
 }
@@ -451,12 +450,10 @@ function checkTyping(key) {
     if (game.isDone) return;
     const current = word.currentWord;
     const expected = current.charAt(stats.typed).toUpperCase();
-    console.log(expected, key);
 
     if (expected === key) {
         stats.correct++;
         stats.typed++;
-        console.log(`正确输入key: ${key} expected: ${expected}`);
 
         if (key === ' ') stats.typed = stats.typed + 5; // 处理空格输入
         setDomText(dom.errText, '');
@@ -510,7 +507,6 @@ function checkTyping(key) {
     if (game.isDone) return;
     const current = word.currentWord;
     const expected = current.charAt(stats.typed).toUpperCase();
-    console.log(expected, key);
 
     if (expected === key) {
         stats.correct++;
@@ -668,6 +664,7 @@ function knownWord() {
     word.nextSound = word.wordIndex + 1 < word.selectedWords.length ?
         audio.create(word.selectedWords[word.wordIndex + 1]) : null;
 
+    this.blur();
     // 更新显示
     updateWord();
 }
