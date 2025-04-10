@@ -131,7 +131,8 @@ const word = {
     currentSound: null,           // 当前单词音频
     nextSound: null,              // 下一个单词音频
     correctWords: {},             // 已掌握单词
-    isShuffled: storage.getBool('wordShuffled') ?? true,    // 是否打乱单词顺序
+    isShuffled: storage.getBool('wordShuffled') ?? true,           // 是否打乱单词顺序
+    lastWordHidden: storage.getBool('lastWordHidden') ?? false,    // 是否打乱单词顺序
     loopCount: Number(storage.get('wordLoopCount', '1')),   // 单词循环次数
     currentDict: storage.get('currentDict', 'basic'),       // 当前词典
     dictProgress: JSON.parse(storage.get('dictProgress', '{"basic":1,"cet4":1}')), // 词典进度
@@ -176,6 +177,7 @@ const dom = {
     voiceSelect: $('#voice-Select'),            // 释义发音人选择
     rateSlider: $('#rate-Slider'),              // 释义发音语速滑块
     rateValue: $('#rate-Value'),                // 释义发音语速显示
+    lastWordHidden: $('#last-word-hidden'),     // 最后单词隐藏按钮
     paraphraseVoice: $('#paraphrase-Voice-Toggle')  // 释义发音开关
 };
 
@@ -345,10 +347,15 @@ function updateWord() {
         // 切换活动类
         word.wordElements[i - 1].classList.remove('active');
         word.wordElements[i].classList.add('active');
-
+        if (word.lastWordHidden) {
+            word.wordElements[i - 1].classList.remove('hidden-text');
+            if (word.currentWord != word.selectedWords[i + 1]) {
+                word.wordElements[i].classList.add('hidden-text');
+                word.wordElements[i - 1].querySelector('.typed').classList.add('hidden-text');
+            }
+        }
         // 更新音频
         word.currentSound = word.nextSound;
-
         // 预加载下一个单词音频（如果存在）
         if (i + 1 < word.selectedWords.length) {
             word.nextSound = audio.create(word.selectedWords[i + 1]);
@@ -512,7 +519,7 @@ function checkTyping(key) {
         stats.correct++;
         stats.typed++;
         setDomText(dom.errText, '');
-        const html = stats.typed ? `<span class="typed">${current.substring(0, stats.typed)}</span>${current.substring(stats.typed)}` : current;
+        const html = stats.typed ? `${current.substring(0, stats.typed)}</span>${current.substring(stats.typed)}` : current;
         word.currWordEl.innerHTML = '<span class="typed">' + html.replace(/ /g, '&nbsp;'); // 替换空格为 &nbsp;
 
         if (stats.typed === current.length) {
@@ -615,7 +622,7 @@ function reviewWords() {
 
     dom.diffSlider.style.display = game.isReview ? 'none' : 'block';
     init();
-    
+
 }
 
 // 清除未掌握单词
@@ -664,7 +671,6 @@ function knownWord() {
     word.nextSound = word.wordIndex + 1 < word.selectedWords.length ?
         audio.create(word.selectedWords[word.wordIndex + 1]) : null;
 
-    this.blur();
     // 更新显示
     updateWord();
 }
@@ -723,11 +729,35 @@ function initSettings() {
         voiceSet.paraphrase = dom.paraphraseVoice.checked;
         storage.set('paraphraseVoice', voiceSet.paraphrase);
     });
-    bindEvent(dom.wordShuffled, 'change', () => {// 更新单词打乱设置
+
+    function wordShuffled() {
         word.isShuffled = dom.wordShuffled.checked;
         storage.set('wordShuffled', word.isShuffled);
+        dom.lastWordHidden.checked = false;
+        word.lastWordHidden = false;
+        storage.set('lastWordHidden', false);
         init();
-    });
+    }
+
+    bindEvent(dom.wordShuffled, 'change', wordShuffled);
+
+    function lastWordHidden() {
+        word.lastWordHidden = dom.lastWordHidden.checked;
+        storage.set('lastWordHidden', word.lastWordHidden);
+        dom.wordShuffled.checked = false;
+        word.isShuffled = false;
+        storage.set('wordShuffled', false);
+        if (word.loopCount === 1) {
+            dom.wordLoopSlider.value = 2
+            word.loopCount = Number(dom.wordLoopSlider.value);
+            storage.set('wordLoopCount', word.loopCount);
+            dom.wordLoopValue.textContent = word.loopCount;
+        }
+        init();
+    }
+
+    bindEvent(dom.lastWordHidden, 'change', lastWordHidden);
+
     bindEvent(document, 'click', (e) => {// 点击其他地方关闭菜单
         if (!e.target.closest('.controls')) {
             dom.diffMenu.classList.remove('visible');
@@ -745,9 +775,9 @@ function initSettings() {
         else if (keyCode === 37 && game.isHidden) goBackWord();// 左箭头键返回上一个单词
         else if (keyCode === 38) updateDifficulty(1);// 上箭头键增加难度
         else if (keyCode === 40) updateDifficulty(-1);// 下箭头键降低难度
-        else if (keyCode === 9) knownWord();// tab键标记为已掌握
+        else if (keyCode === 192) knownWord();// `键标记为已掌握
         else if ((keyCode >= 65 && keyCode <= 90 || keyCode == 32)) checkTyping(String.fromCharCode(keyCode));// 处理字母和空格输入
-        else if (keyCode == 222) checkTyping("'"); // 处理单引号输入
+        else if (keyCode === 222) checkTyping("'"); // 处理单引号输入
     });
     dom.soundLoopSlider.value = voiceSet.loop;
     dom.voiceSelect.value = voiceSet.voice;
