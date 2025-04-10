@@ -54,7 +54,8 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             line-height: 1.5;
-            padding: 10px;
+            padding-left: 10px;
+            padding-right: 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -480,9 +481,16 @@
                     <input type="range" class="difficulty-slider" id="word-Loop-Slider" min="1" max="9" step="1"
                         value="1">
                     <div class="switch-container">
-                        <p>单词乱序</p>
+                        <p>乱序练习</p>
                         <label class="switch">
                             <input type="checkbox" id="shuffled-words-Toggle" checked>
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                    <div class="switch-container">
+                        <p>最后一个单词模糊</p>
+                        <label class="switch">
+                            <input type="checkbox" id="last-word-hidden">
                             <span class="slider-switch"></span>
                         </label>
                     </div>
@@ -568,7 +576,7 @@
                             <p><span class="key">←</span> 返回上个单词</p>
                             <p><span class="key">↑</span> 进度级别+1</p>
                             <p><span class="key">↓</span> 进度级别-1</p>
-                            <p><span class="key">Tab</span>标记已掌握单词，练习中不会再出现该单词</p>
+                            <p><span class="key">`</span>标记已掌握单词，练习中不会再出现该单词</p>
                         </ul>
                     </section>
                 </div>
