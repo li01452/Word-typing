@@ -785,6 +785,7 @@ function initSettings() {
     dom.paraphraseVoice.checked = voiceSet.paraphrase;
     dom.wordShuffled.checked = word.isShuffled;
     dom.soundLoopValue.textContent = voiceSet.loop;
+    dom.lastWordHidden.checked = word.lastWordHidden;
     ttsMsg.lang = 'zh-CN';
 }
 initSettings();
