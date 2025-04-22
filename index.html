@@ -54,8 +54,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             line-height: 1.5;
-            padding-left: 10px;
-            padding-right: 10px;
+            padding: 0 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -74,7 +73,7 @@
             display: flex;
         }
 
-        button {
+        .button {
             background: transparent;
             color: var(--text-color);
             border: none;
@@ -88,7 +87,7 @@
             transition: background-color 2s, transform 0.1s;
         }
 
-        .control-button.active {
+        .button.active {
             background: var(--primary-color);
             color: white;
         }
@@ -134,7 +133,7 @@
             border-radius: 10px;
         }
 
-        .slider {
+        .word-slider {
             display: flex;
             position: absolute;
             font-family: "Candara";
@@ -243,10 +242,12 @@
             }
         }
 
+
         .hidden-text {
             color: transparent !important;
             text-shadow: 0 0 18px var(--text-color);
         }
+
 
         .start-prompt {
             height: 100%;
@@ -279,21 +280,23 @@
             width: 500px;
             padding: 10px 60px;
             border-radius: 12px;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
-        h2,
-        h3 {
-            padding: 10px;
-            text-align: center;
-        }
-
-        body.dark-mode .help-window {
+        .dark-mode .help-window {
             background: #2c2c2c;
             color: #ddd;
         }
 
-        body.dark-mode h2,
-        body.dark-mode h3 {
+        .help-header h2,
+        .help-content h3 {
+            padding: 10px;
+            text-align: center;
+        }
+
+        .dark-mode .help-header h2,
+        .dark-mode .help-content h3 {
             color: #ccc;
         }
 
@@ -309,7 +312,7 @@
             font-size: 0.9em;
         }
 
-        body.dark-mode .help-content .key {
+        .dark-mode .help-content .key {
             background: #444;
         }
 
@@ -321,6 +324,48 @@
             color: #fff;
             display: block;
             text-align: center;
+        }
+
+        .current-dict-name {
+            font-size: 20px;
+            padding: 12px;
+            cursor: pointer;
+        }
+
+        .dict-selector {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin-right: auto;
+        }
+
+        .dropdown-arrow {
+            font-size: 12px;
+            margin-left: 4px;
+            color: var(--text-color);
+            opacity: 0.6;
+            cursor: pointer;
+        }
+
+        .dictionary-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 8px 16px var(--shadow-color);
+            margin-top: 10px;
+            z-index: 10;
+            min-width: 200px;
+        }
+
+        .dictionary-dropdown.visible {
+            display: flex;
         }
 
         .dictionary-option {
@@ -347,12 +392,6 @@
         .dictionary-option p {
             font-size: 14px;
             opacity: 0.8;
-        }
-
-        .current-dict-name {
-            font-size: 20px;
-            margin-right: auto;
-            padding: 12px;
         }
 
         .dropdown {
@@ -411,8 +450,6 @@
             color: var(--text-color);
         }
 
-
-
         .switch-container {
             display: flex;
             align-items: center;
@@ -464,77 +501,96 @@
         input:checked+.slider-switch:before {
             transform: translateX(20px);
         }
+
+        .help-section {
+            margin-bottom: 20px;
+        }
+
+        .help-section li {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 
 <body>
     <div class="header">
-        <span class="current-dict-name">常用基础英语词汇</span>
+        <div class="dict-selector">
+            <span class="current-dict-name" data-bind="dict_current">常用基础英语词汇</span>
+            <span class="dropdown-arrow">▼</span>
+            <div class="dictionary-dropdown">
+                <div class="dictionary-option" data-type="basic">
+                    <h1>基础英语词汇</h1>
+                    <p>1000词</p>
+                </div>
+                <div class="dictionary-option" data-type="cet4">
+                    <h1>英语四级词库</h1>
+                    <p>2607词</p>
+                </div>
+            </div>
+        </div>
         <div class="controls">
-            <button class="dark-mode-toggle" title="切换暗/亮模式">🌙</button>
+            <button class="button dark-mode-toggle" title="切换暗/亮模式">🌙</button>
             <div class="dropdown">
-                <button class="difficulty-toggle" title="调整进度">⚙️</button>
+                <button class="button difficulty-toggle" title="调整进度">⚙️</button>
                 <div class="difficulty-dropdown">
                     <p>进度: <span class="level-display">5</span></p>
-                    <input type="range" class="difficulty-slider" min="1" max="40" value="20">
-                    <p>练习时单词重复次数: <span id="word-Loop-Value">1</span></p>
-                    <input type="range" class="difficulty-slider" id="word-Loop-Slider" min="1" max="9" step="1"
-                        value="1">
+                    <input type="range" class="difficulty-slider learning-progress" min="1" max="40" value="20">
+                    <p>练习时单词重复次数: <span class="word-loop-value" data-bind="unit_loopCount">1</span></p>
+                    <input type="range" class="difficulty-slider word-loop-slider" min="1" max="9" step="1" value="1"
+                        data-bind="unit_loopCount">
                     <div class="switch-container">
                         <p>乱序练习</p>
                         <label class="switch">
-                            <input type="checkbox" id="shuffled-words-Toggle" checked>
+                            <input type="checkbox" class="shuffled-words-toggle" data-bind="unit_isShuffled" checked>
                             <span class="slider-switch"></span>
                         </label>
                     </div>
                     <div class="switch-container">
                         <p>最后一个单词模糊</p>
                         <label class="switch">
-                            <input type="checkbox" id="last-word-hidden">
+                            <input type="checkbox" class="last-word-hidden" data-bind="display_hideLastWord">
                             <span class="slider-switch"></span>
                         </label>
                     </div>
-                    <div id="dictionary-switch">
-                        <div class="dictionary-option" data-type="basic" onclick="switchDictionary('basic')">
-                            <h1>基础英语词汇</h1>
-                            <p>1000词</p>
-                        </div>
-                        <div class="dictionary-option" data-type="cet4" onclick="switchDictionary('cet4')">
-                            <h1>英语四级词库</h1>
-                            <p>2607词</p>
-                        </div>
+                    <div class="switch-container">
+                        <p>释义模糊</p>
+                        <label class="switch">
+                            <input type="checkbox" class="paraphrase-hidden" data-bind="display_hideParaphrase">
+                            <span class="slider-switch"></span>
+                        </label>
                     </div>
                 </div>
             </div>
-            <button class="hide-word-toggle" title="隐藏/显示单词">🙈</button>
-            <button class="restart-button" title="重新开始">🔄</button>
-            <button class="help-button" title="帮助">❔</button>
-            <button class="review-mode-toggle" title="复习模式">🎯</button>
+            <button class="button hide-word-toggle" title="隐藏/显示单词">🙈</button>
+            <button class="button restart-button" title="重新开始">🔄</button>
+            <button class="button help-button" title="帮助">❔</button>
+            <button class="button review-mode-toggle" title="复习模式">🎯</button>
             <div class="dropdown">
-                <button class="sound-toggle" title="声音设置">🔈</button>
+                <button class="button sound-toggle" title="声音设置">🔈</button>
                 <div class="sound-dropdown">
                     <div class="sound-option">
-                        <p>单词发音次数: <span id="sound-Loop-Value">1</span></p>
-                        <input type="range" class="difficulty-slider" id="sound-Loop-Slider" min="0" max="5" step="1"
-                            value="1">
+                        <p>单词发音次数: <span class="sound-loop-value" data-bind="voice_loop">1</span></p>
+                        <input type="range" class="difficulty-slider sound-loop-slider" min="0" max="5" step="1"
+                            value="1" data-bind="voice_loop">
                     </div>
                     <div class="sound-option">
                         <div class="switch-container">
                             <p>释义发音:</p>
                             <label class="switch">
-                                <input type="checkbox" id="paraphrase-Voice-Toggle" checked>
+                                <input type="checkbox" class="paraphrase-voice-toggle"
+                                    data-bind="voice_enableParaphrase" checked>
                                 <span class="slider-switch"></span>
                             </label>
                         </div>
                     </div>
                     <div class="sound-option">
-                        <p>释义发音语速: <span id="rate-Value">1.0</span></p>
-                        <input type="range" class="difficulty-slider" id="rate-Slider" min="0" max="5" step="0.1"
-                            value="2.0">
+                        <p>释义发音语速: <span class="rate-value" data-bind="voice_rate">1.0</span></p>
+                        <input type="range" class="difficulty-slider rate-slider" min="0" max="5" step="0.1" value="2.0"
+                            data-bind="voice_rate">
                     </div>
                     <div class="sound-option">
                         <p>释义发音人:</p>
-                        <select id="voice-Select">
+                        <select class="voice-select" data-bind="voice_type">
                             <option value="Xiaoxiao">Xiaoxiao - Chinese</option>
                         </select>
                     </div>
@@ -546,43 +602,79 @@
         <div class="error-text"></div>
         <div class="word-display">
             <div class="start-prompt">点击此处开始打字练习</div>
-            <div class="slider" id="slider"></div>
+            <div class="word-slider"></div>
         </div>
         <div class="paraphrase"></div>
         <div class="help-overlay">
             <div class="help-window">
                 <div class="help-header">
-                    <h2>使用指南</h2>
+                    <h2>单词打字练习 - 使用指南</h2>
                 </div>
                 <div class="help-content">
-                    <section>
+                    <section class="help-section">
                         <h3>基本操作</h3>
                         <ul>
-                            <li>点击“开始练习”区域开始训练</li>
-                            <li>每次随机筛选25个单词练习</li>
-                            <li>单词听写时，输入错误5次单词会加入未掌握单词库</li>
-                            <li>练习完成之后进度自动提升</li>
-                            <li>未掌握单词练习中若同时开启隐藏单词模式听写，输入正确3次可从未掌握单词中清除该单词，下次练习时就不会有该单词了</li>
+                            <li><strong>开始练习：</strong>点击页面中央的"点击此处开始打字练习"区域即可开始。系统会根据当前进度和选择的词典自动选取单词。</li>
+                            <li><strong>打字练习：</strong>看到单词释义后，直接输入单词。输入正确的字母会变为蓝色，错误则会有提示。</li>
+                            <li><strong>练习规则：</strong>每轮随机筛选25个单词，完成练习后进度自动提升。</li>
+                            <li><strong>切换词典：</strong>点击左上角当前词典名称可以在基础英语词汇和四级词库之间切换。</li>
                         </ul>
                     </section>
-                    <section>
+
+                    <section class="help-section">
+                        <h3>功能按钮说明</h3>
+                        <ul>
+                            <li><strong>🌙/☀️</strong> - 切换深色/浅色模式</li>
+                            <li><strong>⚙️</strong> - 打开设置菜单，可调整进度、单词重复次数和其他选项</li>
+                            <li><strong>🙈/👀</strong> - 切换隐藏/显示单词模式，隐藏模式下需要听发音猜单词</li>
+                            <li><strong>🔄</strong> - 重新开始当前练习</li>
+                            <li><strong>❔</strong> - 打开帮助菜单</li>
+                            <li><strong>🎯/📚</strong> - 切换复习模式（练习未掌握的单词）</li>
+                            <li><strong>🔈</strong> - 声音设置，可调整发音次数、释义朗读等选项</li>
+                        </ul>
+                    </section>
+
+                    <section class="help-section">
+                        <h3>高级功能</h3>
+                        <ul>
+                            <li><strong>未掌握单词管理：</strong>输入错误5次的单词会自动加入未掌握单词库，可通过复习模式专门练习这些单词。</li>
+                            <li><strong>单词掌握机制：</strong>在复习模式下使用隐藏单词模式，如果连续输入正确3次，该单词会从未掌握单词中移除。</li>
+                            <li><strong>学习模式选项：</strong>可以选择乱序练习、最后一个单词模糊、释义模糊等不同的学习模式，提高练习难度。</li>
+                            <li><strong>进度管理：</strong>可以通过设置菜单中的进度滑块或快捷键调整当前学习进度。</li>
+                        </ul>
+                    </section>
+
+                    <section class="help-section">
                         <h3>快捷键</h3>
                         <ul>
-                            <p><span class="key">Enter</span> 显示当前单词</p>
-                            <p><span class="key">\</span> 播放当前单词音频</p>
-                            <p><span class="key">Esc</span> 切换隐藏模式</p>
-                            <p><span class="key">End</span> 清除跳过的单词</p>
-                            <p><span class="key">→</span> 跳过当前单词</p>
-                            <p><span class="key">←</span> 返回上个单词</p>
-                            <p><span class="key">↑</span> 进度级别+1</p>
-                            <p><span class="key">↓</span> 进度级别-1</p>
-                            <p><span class="key">`</span>标记已掌握单词，练习中不会再出现该单词</p>
+                            <li><span class="key">Enter</span> - 显示当前单词（当你不确定单词拼写时）</li>
+                            <li><span class="key">\</span> - 播放当前单词音频</li>
+                            <li><span class="key">Esc</span> - 切换隐藏单词模式</li>
+                            <li><span class="key">Shift+Esc</span> - 切换释义模糊</li>
+                            <li><span class="key">End</span> - 清除未掌握单词列表</li>
+                            <li><span class="key">→</span> - 跳过当前单词（将自动加入未掌握单词）</li>
+                            <li><span class="key">←</span> - 返回上一个单词</li>
+                            <li><span class="key">↑</span> - 提高进度级别</li>
+                            <li><span class="key">↓</span> - 降低进度级别</li>
+                            <li><span class="key">`</span> - 标记当前单词为已掌握（练习中将不再出现该单词）</li>
+                        </ul>
+                    </section>
+
+                    <section class="help-section">
+                        <h3>学习建议</h3>
+                        <ul>
+                            <li>每天固定时间练习，保持连续性效果更佳</li>
+                            <li>听发音和看释义同时进行，加深记忆</li>
+                            <li>对于难记的单词，可使用隐藏模式多次练习</li>
+                            <li>完成一个级别后再进入下一级别，循序渐进</li>
+                            <li>交替使用不同模式，提高学习乐趣和效果</li>
                         </ul>
                     </section>
                 </div>
                 <button class="help-close">关闭</button>
             </div>
         </div>
+
         <div class="progress-bar-container">
             <div class="progress-bar"></div>
         </div>
