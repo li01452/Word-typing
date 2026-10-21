@@ -1,722 +1,1236 @@
-const beep = new Audio("data:audio/mpeg;base64,//NExAASObKIDUBAAiAx///y7vegoDcPz2FAaAsDwaCgFgeGIieiJX////7v//CECgoKUWDcBQBQPKLBuDcXsTwfB8uf4IOWf+XB/BN4IHPDH//4kDCgAAAADYNtp65AuRxux////+f/80LEEhkL0uJfgWgCNutR/shrUFcFxJF0TIMxzGcIom0oG5KoqcupPp0767qWks1SFoU/5Jf1ia5qcUutFT1Mqz6l22qf1db3H4s0v/iyEht/9x0//9P//+gXv//6j1UCMjAliFTd1pL/80DECRVDRpR1wJgDk0lOizIJoGM0ATEFQjKk8TSC3QTdDfXv+jbV9mugnQSuccmwMDARiFnG5uboIv/dl6711f+r9LUzLDA4yKLf/VW3////a7OYiPxkWALSHAEJAupdSaBskbF0fP/zQsQPF2tKtH4DTv7UutToqL4TUOapkqI7is0PoropLQPl0ySoaadBNX/2UtklJGJgCvCfGZ5JSbK/nLf3ZKofZ1RWf/as0RWS3+6mTlY5THY1Pv//0mjYKhxyD04F4P////R61tNTqP/zQMQNFtNGjFVBaAKjqdSTJvYepKDyrRZzIvF1KpFlomD9l3dWtkfWjXalTZUtMwrQdpJMcWvq+/7LZ1JPX2U61spLdlJLOMMCasYos/qdBM1o7////9TrRWeqAI+lkkUXgAGl//////NCxAwXmmqAXYGIAKH1IGJg6BxqkoiAd8unYzQWHB6yi+YkBpJJGa3nFPWgz1t0VLnHHyUQHEfZcTUTx0mRzgIwTmSOtFFai9Z1GSlJGzpmVaaSl62sfZv/8vHkXfK1AWgBfIhCzCGY//NAxAkOoNnphcEYAkOIT5+L4x+q9VS4zFszdCgIFBVQd/VKnRKdg1/UDSg6vkYKwVljysS///9R5QdgqsFVTEFNRTMuOTkuM1VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=");
-const $ = (selector) => document.querySelector(selector);
-const setDomText = (el, text) => el.textContent = text;
-const setDomStyle = (el, property, value) => el.style[property] = value;
-const bindEvent = (el, event, handler) => el.addEventListener(event, handler);
-const setStorage = (key, value) => localStorage.setItem(key, typeof value === 'object' ? JSON.stringify(value) : value);
-const format = {
-    time: (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`,
-    percentage: (value, total) => total ? `${((value / total) * 100).toFixed(1)}%` : '100%',
-    speed: (chars, seconds) => seconds ? Math.round(chars / seconds * 60) : '0'
-};
-
-//词性映射表
+// 由用户提供的更新版压缩页面还原；恢复命名和结构，保留原运行规则。
+/**
+ * 错误提示音。保留附件内嵌音频，避免新增音频文件依赖。
+ */
+const beep = new Audio(
+  "data:audio/mpeg;base64,//NExAASObKIDUBAAiAx///y7vegoDcPz2FAaAsDwaCgFgeGIieiJX////7v//CECgoKUWDcBQBQPKLBuDcXsTwfB8uf4IOWf+XB/BN4IHPDH//4kDCgAAAADYNtp65AuRxux////+f/80LEEhkL0uJfgWgCNutR/shrUFcFxJF0TIMxzGcIom0oG5KoqcupPp0767qWks1SFoU/5Jf1ia5qcUutFT1Mqz6l22qf1db3H4s0v/iyEht/9x0//9P//+gXv//6j1UCMjAliFTd1pL/80DECRVDRpR1wJgDk0lOizIJoGM0ATEFQjKk8TSC3QTdDfXv+jbV9mugnQSuccmwMDARiFnG5uboIv/dl6711f+r9LUzLDA4yKLf/VW3////a7OYiPxkWALSHAEJAupdSaBskbF0fP/zQsQPF2tKtH4DTv7UutToqL4TUOapkqI7is0PoropLQPl0ySoaadBNX/2UtklJGJgCvCfGZ5JSbK/nLf3ZKofZ1RWf/as0RWS3+6mTlY5THY1Pv//0mjYKhxyD04F4P////R61tNTqP/zQMQNFtNGjFVBaAKjqdSTJvYepKDyrRZzIvF1KpFlomD9l3dWtkfWjXalTZUtMwrQdpJMcWvq+/7LZ1JPX2U61spLdlJLOMMCasYos/qdBM1o7////9TrRWeqAI+lkkUXgAGl//////NCxAwXmmqAXYGIAKH1IGJg6BxqkoiAd8unYzQWHB6yi+YkBpJJGa3nFPWgz1t0VLnHHyUQHEfZcTUTx0mRzgIwTmSOtFFai9Z1GSlJGzpmVaaSl62sfZv/8vHkXfK1AWgBfIhCzCGY//NAxAkOoNnphcEYAkOIT5+L4x+q9VS4zFszdCgIFBVQd/VKnRKdg1/UDSg6vkYKwVljysS///9R5QdgqsFVTEFNRTMuOTkuM1VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVU=",
+);
+const queryElement = (selector) =>
+  selector ? document.querySelector(selector) : null;
+const setDomText = (element, text) =>
+  element ? (element.textContent = String(text)) : null;
+const setDomStyle = (element, property, value) =>
+  element ? (element.style[property] = value) : null;
+const bindEvent = (element, eventType, handler) =>
+  element.addEventListener(eventType, handler);
+const setStorage = (key, value) =>
+  localStorage.setItem(
+    key,
+    typeof value == "object" ? JSON.stringify(value) : value,
+  );
+const formatTime = (seconds) =>
+  `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+const formatPercentage = (value, total) =>
+  total ? ((value / total) * 100).toFixed(1) + "%" : "100%";
+const formatSpeed = (characters, seconds) =>
+  seconds ? Math.round((characters / seconds) * 60) : "0";
 const partsOfSpeech = {
-    'n.': '名',
-    'adj.': '形容',
-    'v.': '动',
-    'adv.': '副',
-    'pron.': '代',
-    'prep.': '介',
-    'conj.': '连',
-    'art.': '冠',
-    'aux.': '助动',
-    'num.': '数',
-    'pl.': '复数',
-    'abbr.': '缩写',
-    'vt.': '及物动词'
+  "n.": "名",
+  "adj.": "形容",
+  "v.": "动",
+  "adv.": "副",
+  "pron.": "代",
+  "prep.": "介",
+  "conj.": "连",
+  "art.": "冠",
+  "aux.": "助动",
+  "num.": "数",
+  "pl.": "复数",
+  "abbr.": "缩写",
+  "vt.": "及物动词",
 };
-
-// ======== 配置和状态变量定义 ========
-// 全局配置对象
+/**
+ * 持久化设置。键名沿用线上版本，以兼容原来的 localStorage 数据。
+ * 注意：附件的布尔默认值表达式存在问题，详见 docs/RESTORATION.md；本次保留行为。
+ */
 const config = {
-    unit_isShuffled: localStorage.getItem('unit_isShuffled') === 'true' ?? true,
-    display_hideLastWord: localStorage.getItem('display_hideLastWord') === 'true' ?? false,
-    display_hideParaphrase: localStorage.getItem('display_hideParaphrase') === 'true' ?? false,
-    unit_loopCount: Number(localStorage.getItem('unit_loopCount') ?? '1'),
-    voice_enableParaphrase: localStorage.getItem('voice_enableParaphrase') === 'true' ?? true,
-    voice_type: localStorage.getItem('voice_type') ?? 'Xiaoxiao',
-    voice_loop: Number(localStorage.getItem('voice_loop') ?? '2'),
-    voice_rate: Number(localStorage.getItem('voice_rate') ?? '2.0'),
-    dict_current: localStorage.getItem('dict_current') ?? 'basic',
-    dict_progress: JSON.parse(localStorage.getItem('dict_progress') ?? '{"basic":1,"cet4":1}'),
-    darkMode: localStorage.getItem('darkMode') === 'true' ?? false,
-    knownWords: JSON.parse(localStorage.getItem('knownWords') ?? '[]'),
-    unKnownWords: JSON.parse(localStorage.getItem('unKnownWords') ?? '[]')
+  unit_isShuffled: localStorage.getItem("unit_isShuffled") === "true" ?? true,
+  display_hideLastWord:
+    localStorage.getItem("display_hideLastWord") === "true" ?? false,
+  display_hideParaphrase:
+    localStorage.getItem("display_hideParaphrase") === "true" ?? false,
+  capitalize_words:
+    localStorage.getItem("capitalize_words") === "true" ?? false,
+  enable_animations:
+    localStorage.getItem("enable_animations") === "true" ?? false,
+  unit_loopCount: Number(localStorage.getItem("unit_loopCount") ?? "1"),
+  voice_enableParaphrase:
+    localStorage.getItem("voice_enableParaphrase") === "true" ?? true,
+  voice_type: localStorage.getItem("voice_type") ?? "Xiaoxiao",
+  voice_loop: Number(localStorage.getItem("voice_loop") ?? "2"),
+  voice_rate: Number(localStorage.getItem("voice_rate") ?? "2.0"),
+  dict_current: localStorage.getItem("dict_current") ?? "basic",
+  dict_progress: JSON.parse(
+    localStorage.getItem("dict_progress") ?? '{"basic":1,"cet4":1}',
+  ),
+  darkMode: localStorage.getItem("darkMode") === "true" ?? false,
+  knownWords: JSON.parse(localStorage.getItem("knownWords") ?? "[]"),
+  unKnownWords: JSON.parse(
+    localStorage.getItem("unKnownWords") ?? '{"basic":[],"cet4":[]}',
+  ),
+  practiceRecords: JSON.parse(localStorage.getItem("practiceRecords") ?? "{}"),
 };
-
-// 配置代理，实现双向绑定
-const proxy = new Proxy(config, {
-    set(target, property, value) {
-        target[property] = value;
-        setStorage(property, value);
-
-        // 更新所有绑定了该属性的DOM元素
-        document.querySelectorAll(`[data-bind="${property}"]`).forEach(element => {
-            if (element.tagName === 'INPUT') {
-                if (element.type === 'checkbox') {
-                    element.checked = value;
-                } else {
-                    element.value = value;
-                }
-            } else if (element.tagName === 'SELECT') {
-                element.value = value;
-            } else {
-                // 对于其他元素(如 span, p 等)，更新其文本内容
-                element.textContent = value;
-            }
-        });
-
-        return true;
-    }
-});
-
-// 游戏状态管理
-const gameState = {
-    isDone: true,      // 练习完成标志
-    isHidden: false,    // 隐藏单词标志
-    isReview: false,    // 复习模式标志
-    timer: null,        // 计时器
-    wordsPerRound: 25   // 每轮单词数
-};
-
-// 单词状态管理
-const wordState = {
-    dict: {},                     // 词典数据
-    selectedWords: [],            // 当前练习单词列表
-    wordElements: null,           // 单词DOM元素集合
-    currentWord: '',              // 当前单词
-    currWordEl: null,             // 当前单词DOM元素
-    wordIndex: 0,                 // 当前单词索引
-    currentSound: null,           // 当前单词音频
-    nextSound: null,              // 下一单词音频
-    correctWords: {}              // 已掌握单词
-};
-
-// 练习统计数据
-const stats = {
-    typed: 0,         // 已输入字符数
-    correct: 0,       // 正确字符数
-    errors: '',       // 错误记录
-    done: 0,          // 完成单词数
-    failed: 0,        // 错误单词数
-    time: 0,          // 用时(秒)
-    typos: 0         // 当前单词错误数
-};
-
-// ======== DOM 元素引用 ========
-const dom = {
-    darkMode: $('.dark-mode-toggle'),
-    dictProgress: $('.learning-progress'),
-    diffMenu: $('.difficulty-dropdown'),
-    levelNum: $('.level-display'),
-    hideToggle: $('.hide-word-toggle'),
-    helpBtn: $('.help-button'),
-    reviewToggle: $('.review-mode-toggle'),
-    restartBtn: $('.restart-button'),
-    errText: $('.error-text'),
-    wordList: $('.word-slider'),
-    paraphrase: $('.paraphrase'),
-    levelVal: $('.level-text'),
-    speedVal: $('.speed-text'),
-    correctVal: $('.correct-text'),
-    errWordVal: $('.error-word-text'),
-    rateVal: $('.correctrate-text'),
-    timeVal: $('.time-text'),
-    startHint: $('.start-prompt'),
-    setupToggle: $('.difficulty-toggle'),
-    progress: $('.progress-bar'),
-    helpModal: $('.help-overlay'),
-    helpClose: $('.help-close'),
-    dictLabel: $('.current-dict-name'),
-    dictSelector: $('.dict-selector'),
-    dictDropdown: $('.dictionary-dropdown'),
-    dictOptions: $('.dictionary-option'),
-    soundToggle: $('.sound-toggle'),
-    soundMenu: $('.sound-dropdown'),
-    unitLoopSlider: $('.word-loop-slider'),
-    unitLoopValue: $('.word-loop-value'),
-    unitIsShuffled: $('.shuffled-words-toggle'),
-    soundLoopSlider: $('.sound-loop-slider'),
-    soundLoopValue: $('.sound-loop-value'),
-    voiceSelect: $('.voice-select'),
-    rateSlider: $('.rate-slider'),
-    rateValue: $('.rate-value'),
-    lastWordHidden: $('.last-word-hidden'),
-    displayHideParaphrase: $('.paraphrase-hidden'),
-    voiceEnableParaphrase: $('.paraphrase-voice-toggle')
-};
-
-// ======== 音频管理 ========
-const ttsMsg = new SpeechSynthesisUtterance();
-const audioCache = new Map();
-const audio = {
-    create: (word) => {
-        if (audioCache.has(word)) return audioCache.get(word);
-        const audioElement = new Audio(`https://dict.youdao.com/dictvoice?type=0&audio=${word}`);
-        audioElement.load();
-        audioCache.set(word, audioElement);
-        return audioElement;
-    },
-    playAudio: async (sound, times = 2) => {
-        for (let i = 0; i < times; i++) {
-            await sound.play();
-            await new Promise(resolve => sound.onended = resolve);
-            sound.currentTime = 0;
-        }
-    },
-    stop: (sound) => {
-        if (sound) {
-            sound.pause();
-            sound.currentTime = 0;
-        }
-        speechSynthesis.cancel();
-    },
-    speak: (text) => {
-        const cleanText = text.replace(/[a-z]+\./g, '')
-            .replace(/&/g, '')
-            .split(/[;,]/)
-            .filter((item, index, array) => array.indexOf(item) === index)
-            .join(';');
-        ttsMsg.text = cleanText;
-        ttsMsg.voice = speechSynthesis.getVoices().find(voice => voice.name.includes(proxy.voice_type));
-        ttsMsg.rate = proxy.voice_rate;
-        speechSynthesis.speak(ttsMsg);
-        speechSynthesis.pause();
-    },
-    playWordAndMeaning: async (sound, meaning) => {
-        if (proxy.voice_enableParaphrase) audio.speak(meaning);
-        await audio.playAudio(sound, proxy.voice_loop);
-        if (proxy.voice_enableParaphrase) speechSynthesis.resume();
-    }
-};
-
-// 初始化单词列表
-function initializeWords(level) {
-    // 根据模式选择单词源
-    const wordBank = gameState.isReview ? proxy.unKnownWords : Object.keys(wordState.dict);
-    let selectedWords;
-    let html = '';
-    // 确定单词列表
-    if (gameState.isReview) {
-        selectedWords = wordBank.flatMap(word => Array(proxy.unit_loopCount).fill(word));
-    } else {
-        const start = (level - 1) * gameState.wordsPerRound;
-        selectedWords = wordBank.slice(start, start + gameState.wordsPerRound);
-        // 最后一个单词隐藏模式的特殊处理
-        if (proxy.display_hideLastWord && proxy.unit_loopCount >= 3) {
-            const repeatCount = proxy.unit_loopCount - 1;
-            let selectedWords2 = [];
-            let previousWord = '';
-            for (let i = 0; i < selectedWords.length; i++) {
-                const word = selectedWords[i];
-                // 添加当前单词的重复
-                for (let j = 0; j < repeatCount; j++) {
-                    html += `<div class="word" data-word="${word}">${word}</div>`;
-                    selectedWords2.push(word);
-                }
-                // 添加下一个单词（模糊显示）
-                if (i > 0) {
-                    html += `<div class="word hidden-text" data-word="${previousWord}">${previousWord}</div>`;
-                    selectedWords2.push(previousWord);
-                }
-                previousWord = word;
-            }
-            // 更新DOM和状态
-            wordState.selectedWords = selectedWords2;
-            setupWordList(html, selectedWords2[0], selectedWords2[1]);
-            return;
+/**
+ * 设置代理：属性赋值时同步 localStorage 和 data-bind 控件。
+ * 修改嵌套数组或对象不会触发这里，需要显式调用 setStorage。
+ */
+const settings = new Proxy(config, {
+  set: (target, property, value) => {
+    target[property] = value;
+    setStorage(property, value);
+    document
+      .querySelectorAll(`[data-bind="${property}"]`)
+      .forEach((element) => {
+        if (element.tagName === "INPUT") {
+          if (element.type === "checkbox") {
+            element.checked = value;
+          } else {
+            element.value = value;
+          }
         } else {
-            // 原来的处理逻辑：将每个单词重复指定次数
-            selectedWords = selectedWords.flatMap(word => Array(proxy.unit_loopCount).fill(word));
+          if (element.tagName === "SELECT") {
+            element.value = value;
+          } else {
+            element.textContent = value;
+          }
         }
+      });
+    return true;
+  },
+});
+/**
+ * 练习流程状态。附件每轮 20 词；页面帮助文案仍写 25 词。
+ */
+const gameState = {
+  isDone: true,
+  isHidden: false,
+  isReview: false,
+  timer: null,
+  wordsPerRound: 20,
+};
+/**
+ * 当前词典、练习队列、单词元素和预加载音频。
+ * correctWords 保存隐藏复习中每个词的累计答对次数，并非连续正确次数。
+ */
+const wordState = {
+  dict: {},
+  selectedWords: [],
+  wordElements: null,
+  currentWord: "",
+  currWordEl: null,
+  wordIndex: 0,
+  currentSound: null,
+  nextSound: null,
+  correctWords: {},
+};
+/**
+ * 统计口径沿用附件：correct 是正确字符数，done 是完成单词数，typed 是当前词已输入字符数。
+ */
+const stats = {
+  typed: 0,
+  correct: 0,
+  errors: "",
+  done: 0,
+  failed: 0,
+  time: 0,
+  typos: 0,
+};
+/**
+ * 集中保存页面元素引用，选择器与 index.html 对应。
+ */
+const dom = {
+  darkMode: queryElement(".dark-mode-toggle"),
+  dictProgress: queryElement(".learning-progress"),
+  diffMenu: queryElement(".difficulty-dropdown"),
+  levelNum: queryElement(".level-display"),
+  hideToggle: queryElement(".hide-word-toggle"),
+  helpBtn: queryElement(".help-button"),
+  reviewToggle: queryElement(".review-mode-toggle"),
+  restartBtn: queryElement(".restart-button"),
+  statisticsBtn: queryElement(".statistics-button"),
+  errText: queryElement(".error-text"),
+  wordList: queryElement(".word-slider"),
+  paraphrase: queryElement(".paraphrase"),
+  levelVal: queryElement(".level-text"),
+  speedVal: queryElement(".speed-text"),
+  correctVal: queryElement(".correct-text"),
+  errWordVal: queryElement(".error-word-text"),
+  rateVal: queryElement(".correctrate-text"),
+  timeVal: queryElement(".time-text"),
+  startHint: queryElement(".start-prompt"),
+  setupToggle: queryElement(".difficulty-toggle"),
+  progress: queryElement(".progress-bar"),
+  helpModal: queryElement(".help-overlay"),
+  helpClose: queryElement(".help-close"),
+  dictLabel: queryElement(".current-dict-name"),
+  dictSelector: queryElement(".dict-selector"),
+  dictDropdown: queryElement(".dictionary-dropdown"),
+  dictOptions: queryElement(".dictionary-option"),
+  soundToggle: queryElement(".sound-toggle"),
+  soundMenu: queryElement(".sound-dropdown"),
+  unitLoopSlider: queryElement(".word-loop-slider"),
+  unitLoopValue: queryElement(".word-loop-value"),
+  unitIsShuffled: queryElement(".shuffled-words-toggle"),
+  soundLoopSlider: queryElement(".sound-loop-slider"),
+  soundLoopValue: queryElement(".sound-loop-value"),
+  voiceSelect: queryElement(".voice-select"),
+  rateSlider: queryElement(".rate-slider"),
+  rateValue: queryElement(".rate-value"),
+  lastWordHidden: queryElement(".last-word-hidden"),
+  displayHideParaphrase: queryElement(".paraphrase-hidden"),
+  capitalizeWords: queryElement(".capitalize-words"),
+  enableAnimations: queryElement(".enable-animations"),
+  voiceEnableParaphrase: queryElement(".paraphrase-voice-toggle"),
+  calendarOverlay: queryElement(".calendar-overlay"),
+  calendarClose: queryElement(".calendar-close"),
+  fireworksCanvas: queryElement(".fireworks"),
+  calendarsContainer: queryElement("#calendarsContainer"),
+};
+const ttsMessage = new SpeechSynthesisUtterance();
+const audioCache = new Map();
+/**
+ * 有道单词发音缓存与浏览器中文释义朗读。
+ * 播放结束、取消与并发问题属于原逻辑，详见还原说明。
+ */
+const audio = {
+  create: (word) => {
+    if (audioCache.has(word)) {
+      return audioCache.get(word);
     }
-
-    // 随机打乱单词顺序
-    if (proxy.unit_isShuffled) {
-        for (let i = selectedWords.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [selectedWords[i], selectedWords[j]] = [selectedWords[j], selectedWords[i]];
+    const sound = new Audio(
+      "https://dict.youdao.com/dictvoice?type=0&audio=" + word,
+    );
+    sound.load();
+    audioCache.set(word, sound);
+    return sound;
+  },
+  playAudio: async (sound, repeatCount = 2) => {
+    for (let repeatIndex = 0; repeatIndex < repeatCount; repeatIndex++) {
+      await sound.play();
+      await new Promise((resolve) => (sound.onended = resolve));
+      sound.currentTime = 0;
+    }
+  },
+  stop: (sound) => {
+    if (sound) {
+      sound.pause();
+      sound.currentTime = 0;
+    }
+    speechSynthesis.cancel();
+  },
+  speak: (text) => {
+    const cleanText = text
+      .replace(/[a-z]+\./g, "")
+      .replace(/&/g, "")
+      .split(/[;,]/)
+      .filter((item, index, items) => items.indexOf(item) === index)
+      .join(";");
+    ttsMessage.text = cleanText;
+    ttsMessage.voice = speechSynthesis
+      .getVoices()
+      .find((voice) => voice.name.includes(settings.voice_type));
+    ttsMessage.rate = settings.voice_rate;
+    speechSynthesis.speak(ttsMessage);
+    speechSynthesis.pause();
+  },
+  playWordAndMeaning: async (sound, meaning) => {
+    if (settings.voice_enableParaphrase) {
+      audio.speak(meaning);
+    }
+    await audio.playAudio(sound, settings.voice_loop);
+    if (settings.voice_enableParaphrase) {
+      speechSynthesis.resume();
+    }
+  },
+};
+/**
+ * 加载仓库已有的 JSON 词典；大写转换仍按附件在加载词典时执行。
+ */
+async function switchDictionary(dictionaryType) {
+  if (gameState.isReview) {
+    toggleReviewMode();
+  }
+  document
+    .querySelectorAll(".dictionary-option")
+    .forEach((option) => option.classList.remove("active"));
+  settings.dict_current = dictionaryType;
+  queryElement(
+    `.dictionary-option[data-type="${dictionaryType}"]`,
+  ).classList.add("active");
+  setDomText(
+    dom.dictLabel,
+    {
+      basic: "基础英语词汇1000",
+      cet4: "英语四级词库",
+    }[dictionaryType],
+  );
+  try {
+    const response = await fetch(dictionaryType + ".json");
+    wordState.dict = await response.json();
+    if (settings.capitalize_words) {
+      const uppercaseDictionary = {};
+      for (const word in wordState.dict) {
+        if (wordState.dict.hasOwnProperty(word)) {
+          uppercaseDictionary[word.toUpperCase()] = wordState.dict[word];
         }
+      }
+      wordState.dict = uppercaseDictionary;
     }
-
-    // 保存单词列表并设置当前单词
-    wordState.selectedWords = selectedWords;
-
-    // 生成HTML并更新DOM
-    for (let i = 0; i < selectedWords.length; i++) {
-        html += `<div class="word" data-word="${selectedWords[i]}">${selectedWords[i]}</div>`;
+    const currentLevel = settings.dict_progress[dictionaryType] || 1;
+    const maxLevel = Math.floor(
+      Object.keys(wordState.dict).length / gameState.wordsPerRound,
+    );
+    dom.dictProgress.max = maxLevel;
+    dom.dictProgress.value = currentLevel;
+    setDomText(dom.levelNum, currentLevel);
+    setDomText(dom.levelVal, currentLevel);
+    if (dom.startHint.style.display === "none") {
+      startPractice();
     }
-
-    // 更新DOM和状态
-    setupWordList(html, selectedWords[0], selectedWords[1]);
+  } catch (error) {
+    setDomText(dom.errText, "加载词典失败");
+  }
 }
-
-// 设置单词列表DOM和音频
+/**
+ * 按当前进度截取词典，应用重复次数、错词复习和乱序规则。
+ * 特殊隐藏模式会插入上一个单词的模糊副本，顺序保持与附件一致。
+ */
+function initializeWords(level) {
+  const dictionaryType = settings.dict_current;
+  let selectedWords;
+  let wordBank = gameState.isReview
+    ? settings.unKnownWords[dictionaryType]
+    : Object.keys(wordState.dict);
+  if (gameState.isReview) {
+    selectedWords = wordBank.flatMap((word) =>
+      Array(settings.unit_loopCount).fill(word),
+    );
+  } else {
+    const startIndex = (level - 1) * gameState.wordsPerRound;
+    selectedWords = wordBank.slice(
+      startIndex,
+      startIndex + gameState.wordsPerRound,
+    );
+    if (settings.display_hideLastWord && settings.unit_loopCount >= 3) {
+      const visibleRepeats = settings.unit_loopCount - 1;
+      let practiceWords = [];
+      let previousWord = "";
+      for (let wordIndex = 0; wordIndex < selectedWords.length; wordIndex++) {
+        const word = selectedWords[wordIndex];
+        for (let repeatIndex = 0; repeatIndex < visibleRepeats; repeatIndex++) {
+          practiceWords.push(word);
+        }
+        if (wordIndex > 0) {
+          practiceWords.push(previousWord);
+        }
+        previousWord = word;
+      }
+      wordState.selectedWords = practiceWords;
+      setupWordList(
+        buildWordListHTML(selectedWords, true, settings.unit_loopCount),
+        practiceWords[0],
+        practiceWords[1],
+      );
+      return;
+    }
+    selectedWords = selectedWords.flatMap((word) =>
+      Array(settings.unit_loopCount).fill(word),
+    );
+  }
+  if (settings.unit_isShuffled) {
+    for (let index = selectedWords.length - 1; index > 0; index--) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      [selectedWords[index], selectedWords[randomIndex]] = [
+        selectedWords[randomIndex],
+        selectedWords[index],
+      ];
+    }
+  }
+  wordState.selectedWords = selectedWords;
+  setupWordList(
+    buildWordListHTML(selectedWords),
+    selectedWords[0],
+    selectedWords[1],
+  );
+}
+/**
+ * 将练习词序列转换为滑动列表；特殊隐藏规则与 initializeWords 配套。
+ */
+function buildWordListHTML(words, hidePreviousWord = false, repeatCount = 1) {
+  let html = "";
+  if (hidePreviousWord && repeatCount >= 3) {
+    let previousWord = "";
+    for (let wordIndex = 0; wordIndex < words.length; wordIndex++) {
+      const word = words[wordIndex];
+      for (let repeatIndex = 0; repeatIndex < repeatCount - 1; repeatIndex++) {
+        html += `<div class="word" data-word="${word}">${word}</div>`;
+      }
+      if (wordIndex > 0) {
+        html += `<div class="word hidden-text" data-word="${previousWord}">${previousWord}</div>`;
+      }
+      previousWord = word;
+    }
+  } else {
+    words.forEach((word) => {
+      html += `<div class="word" data-word="${word}">${word}</div>`;
+    });
+  }
+  return html;
+}
+/**
+ * 更新单词列表，并预加载当前词和下一词的音频。
+ */
 function setupWordList(html, currentWord, nextWord) {
-    dom.wordList.innerHTML = html;
-    dom.wordList.querySelector('.word').classList.add('active');
-    wordState.wordElements = dom.wordList.querySelectorAll('.word');
-    dom.wordList.style.transform = 'translateX(266px)';
-    if (gameState.isHidden) {
-        wordState.wordElements.forEach(el => el.classList.add('hidden-text'));
-    }
-    // 保存当前单词并预加载音频
-    wordState.currentWord = currentWord;
-    wordState.currentSound = audio.create(currentWord);
-    wordState.nextSound = nextWord ? audio.create(nextWord) : null;
+  dom.wordList.innerHTML = html;
+  dom.wordList.querySelector(".word").classList.add("active");
+  wordState.wordElements = dom.wordList.querySelectorAll(".word");
+  dom.wordList.style.transform = "translateX(266px)";
+  if (gameState.isHidden) {
+    wordState.wordElements.forEach((element) =>
+      element.classList.add("hidden-text"),
+    );
+  }
+  wordState.currentWord = currentWord;
+  wordState.currentSound = audio.create(currentWord);
+  wordState.nextSound = nextWord ? audio.create(nextWord) : null;
 }
-
-// 初始化练习
-function init() {
-    // 重置状态
-    clearInterval(gameState.timer);
-    gameState.isDone = false;
-    Object.assign(stats, { time: 0, correct: 0, typed: 0, done: 0, failed: 0, errors: '' });
-    wordState.selectedWords = [];
-    wordState.wordIndex = 0;
-    const level = gameState.isReview ? 0 : proxy.dict_progress[proxy.dict_current];
-    dom.dictProgress.value = level;
-    initializeWords(level);
-    // 更新UI显示
-    setDomText(dom.levelNum, gameState.isReview ? "复习中" : level);
-    setDomText(dom.levelVal, level);
-    setDomText(dom.timeVal, '00:00');
-    setDomText(dom.speedVal, '0');
-    setDomText(dom.correctVal, '0');
-    setDomText(dom.errWordVal, '0');
-    setDomText(dom.rateVal, '100%');
-    setDomText(dom.errText, '');
-    setDomStyle(dom.progress, 'width', '0%');
-    dom.dictProgress.style.display = gameState.isReview ? 'none' : 'block';
-    dom.startHint.style.display = 'none';
-    updateWord();
-    audio.playAudio(wordState.currentSound, proxy.voice_loop);
-    gameState.timer = setInterval(updateTimer, 1000);
+/**
+ * 重置本轮状态和界面，生成词序列，然后开始计时。
+ */
+function startPractice() {
+  clearInterval(gameState.timer);
+  gameState.isDone = false;
+  Object.assign(stats, {
+    time: 0,
+    correct: 0,
+    typed: 0,
+    done: 0,
+    failed: 0,
+    errors: "",
+  });
+  wordState.selectedWords = [];
+  wordState.wordIndex = 0;
+  const level = gameState.isReview
+    ? 0
+    : settings.dict_progress[settings.dict_current];
+  dom.dictProgress.value = level;
+  initializeWords(level);
+  setDomText(dom.levelNum, gameState.isReview ? "正在复习模式" : level);
+  setDomText(dom.levelVal, level);
+  setDomText(dom.timeVal, "00:00");
+  setDomText(dom.speedVal, "0");
+  setDomText(dom.correctVal, "0");
+  setDomText(dom.errWordVal, "0");
+  setDomText(dom.rateVal, "100%");
+  setDomText(dom.errText, "");
+  setDomStyle(dom.progress, "width", "0%");
+  dom.dictProgress.style.display = gameState.isReview ? "none" : "block";
+  dom.startHint.style.display = "none";
+  updateWord();
+  audio.playAudio(wordState.currentSound, settings.voice_loop);
+  gameState.timer = setInterval(updateTimer, 1000);
 }
-
-// 切换词典
-async function switchDictionary(type) {
-    // 如果当前是练习模式，先切换回正常模式
-    if (gameState.isReview) reviewWords();
-    document.querySelectorAll('.dictionary-option').forEach(el => el.classList.remove('active'));
-    proxy.dict_current = type;
-    $(`.dictionary-option[data-type="${type}"]`).classList.add('active');
-    const dictNames = { basic: '基础英语词汇1000', cet4: '英语四级词库' };
-    setDomText(dom.dictLabel, dictNames[type]);
-    try {
-        const response = await fetch(`${type}.json`);
-        wordState.dict = await response.json();
-        // 更新进度滑块
-        const currentLevel = proxy.dict_progress[type] || 1;
-        const maxLevel = Math.floor(Object.keys(wordState.dict).length / gameState.wordsPerRound);
-        dom.dictProgress.max = maxLevel;
-        dom.dictProgress.value = currentLevel;
-        setDomText(dom.levelNum, currentLevel);
-        setDomText(dom.levelVal, currentLevel);
-        // 如果已开始练习，重新初始化
-        if (dom.startHint.style.display === 'none') init();
-    } catch (error) {
-        setDomText(dom.errText, '加载词典失败');
-    }
-}
-// 更新计时器
+/**
+ * 每秒更新用时和每分钟正确字符数。
+ */
 function updateTimer() {
-    if (!gameState.isDone) {
-        stats.time++;
-        setDomText(dom.timeVal, format.time(stats.time));
-        setDomText(dom.speedVal, format.speed(stats.correct, stats.time));
-    }
+  if (!gameState.isDone) {
+    stats.time++;
+    setDomText(dom.timeVal, formatTime(stats.time));
+    setDomText(dom.speedVal, formatSpeed(stats.correct, stats.time));
+  }
 }
-// 更新单词显示
+/**
+ * 显示当前单词与词性释义，并切换音频。
+ */
 function updateWord() {
-    const i = wordState.wordIndex;
-    const offset = -i * 266 + 266;// 计算偏移量 (单词宽度 = 266px)
-    const word = wordState.selectedWords[i];
-    const paraphrase = wordState.dict[word];
-    stats.typed = stats.typos = 0; // 重置统计
-    wordState.currentWord = word;
-    // 更新UI
-    dom.wordList.style.transform = `translateX(${offset}px)`;
-    wordState.currWordEl = wordState.wordElements[i];
-    dom.paraphrase.innerHTML = highlightPartsOfSpeech(paraphrase);
-    // 切换活动类
-    if (i > 0) {
-        wordState.wordElements[i - 1].classList.remove('active');
-        wordState.wordElements[i].classList.add('active');
-        // 更新音频
-        wordState.currentSound = wordState.nextSound;
-        if (i + 1 < wordState.selectedWords.length) wordState.nextSound = audio.create(wordState.selectedWords[i + 1]);
+  const index = wordState.wordIndex;
+  const offset = 266 * -index + 266;
+  const word = wordState.selectedWords[index];
+  const meaning = wordState.dict[word];
+  stats.typed = stats.typos = 0;
+  wordState.currentWord = word;
+  dom.wordList.style.transform = `translateX(${offset}px)`;
+  wordState.currWordEl = wordState.wordElements[index];
+  dom.paraphrase.innerHTML = highlightPartsOfSpeech(meaning);
+  if (index > 0) {
+    wordState.wordElements[index - 1].classList.remove("active");
+    wordState.wordElements[index].classList.add("active");
+    wordState.currentSound = wordState.nextSound;
+    if (index + 1 < wordState.selectedWords.length) {
+      wordState.nextSound = audio.create(wordState.selectedWords[index + 1]);
     }
-    audio.playWordAndMeaning(wordState.currentSound, paraphrase);
+  }
+  audio.playWordAndMeaning(wordState.currentSound, meaning);
 }
-// 高亮词性
+/**
+ * 把释义中的词性缩写替换为标签，保留附件的正则匹配规则。
+ */
 function highlightPartsOfSpeech(text) {
-    if (!text) return '';
-    const pattern = new RegExp(`(${Object.keys(partsOfSpeech).join('|')})`, 'g');
-    return text.replace(/&/g, '').replace(pattern, match =>
-        `<span class="part-speech" title="${match}">${partsOfSpeech[match] || match}</span>`
+  if (!text) {
+    return "";
+  }
+  const pattern = new RegExp(`(${Object.keys(partsOfSpeech).join("|")})`, "g");
+  return text
+    .replace(/&/g, "")
+    .replace(
+      pattern,
+      (match) =>
+        `<span class="part-speech" title="${match}">${partsOfSpeech[match] || match}</span>`,
     );
 }
-// 进入下一个单词
+/**
+ * 按字符校验输入；当前词累计错 5 次后自动跳过。
+ */
+function checkTyping(key) {
+  if (gameState.isDone) {
+    return;
+  }
+  const currentWord = wordState.currentWord;
+  const expectedCharacter = currentWord.charAt(stats.typed).toUpperCase();
+  if (expectedCharacter === key) {
+    stats.correct++;
+    stats.typed++;
+    setDomText(dom.errText, "");
+    const html = stats.typed
+      ? `${currentWord.substring(0, stats.typed)}</span>${currentWord.substring(stats.typed)}`
+      : currentWord;
+    wordState.currWordEl.innerHTML =
+      '<span class="typed">' + html.replace(" ", "&nbsp;");
+    if (stats.typed === currentWord.length) {
+      stats.done++;
+      // 保留附件规则：隐藏复习中累计答对超过 3 次才移出错词库。
+      if (gameState.isReview && gameState.isHidden) {
+        wordState.correctWords[currentWord] =
+          (wordState.correctWords[currentWord] || 0) + 1;
+      }
+      if (
+        gameState.isReview &&
+        gameState.isHidden &&
+        wordState.correctWords[currentWord] > 3
+      ) {
+        const dictionaryType = settings.dict_current;
+        settings.unKnownWords[dictionaryType] = settings.unKnownWords[
+          dictionaryType
+        ].filter((word) => word !== currentWord);
+        setStorage("unKnownWords", settings.unKnownWords);
+        setDomText(dom.errText, "已掌握单词：" + currentWord);
+        setTimeout(() => {
+          setDomText(dom.errText, "");
+          nextWord();
+        }, 1000);
+        return;
+      }
+      nextWord();
+      if (settings.enable_animations) {
+        showFireworks(config.darkMode, 2);
+      }
+    }
+  } else {
+    stats.errors += expectedCharacter;
+    stats.typos++;
+    setDomText(dom.errText, "按键错误: " + key);
+    beep.play();
+    if (stats.typos > 4) {
+      skipWord();
+      stats.failed++;
+    }
+  }
+  updateStats();
+}
+/**
+ * 刷新正确率、单词计数和本轮进度条。
+ */
+function updateStats() {
+  const totalCharacters = stats.correct + stats.errors.length;
+  setDomText(dom.speedVal, formatSpeed(stats.correct, stats.time));
+  setDomText(dom.correctVal, stats.done);
+  setDomText(dom.errWordVal, stats.failed);
+  setDomText(dom.rateVal, formatPercentage(stats.correct, totalCharacters));
+  setDomStyle(
+    dom.progress,
+    "width",
+    ((stats.done + stats.failed) / wordState.selectedWords.length) * 100 + "%",
+  );
+}
+/**
+ * 推进到下一词；最后一词结束后记录本轮。
+ */
 function nextWord() {
-    audio.stop(wordState.currentSound);
-    if (wordState.wordIndex + 1 === wordState.selectedWords.length) {
-        if (gameState.isReview && proxy.unKnownWords.length === 0) {
-            setDomText(dom.errText, '恭喜！所有未掌握单词已完成练习！');
-            gameState.isReview = false;
-            dom.reviewToggle.textContent = '🎯';
-        }
-        return unitComplete();
+  audio.stop(wordState.currentSound);
+  if (wordState.wordIndex + 1 === wordState.selectedWords.length) {
+    if (gameState.isReview && settings.unKnownWords.basic.length === 0) {
+      setDomText(dom.errText, "恭喜！所有未掌握单词已完成练习！");
+      gameState.isReview = false;
+      dom.reviewToggle.textContent = "🎯";
     }
-    wordState.wordIndex++;
-    updateWord();
+    return completePractice();
+  }
+  wordState.wordIndex++;
+  updateWord();
 }
-// 跳过当前单词
+/**
+ * 保留附件行为：若已是最后一词，直接结束，不再加入错词库。
+ */
 function skipWord() {
-    audio.stop(wordState.currentSound);
-    if (wordState.wordIndex + 1 >= wordState.selectedWords.length) {
-        return unitComplete();
-    }
-    const skippedWord = wordState.selectedWords[wordState.wordIndex];
-    // 添加到未掌握单词列表
-    if (!proxy.unKnownWords.includes(skippedWord)) {
-        proxy.unKnownWords.push(skippedWord)
-        setStorage('unKnownWords', proxy.unKnownWords);
-    }
-    setDomText(dom.errText, `单词 ${skippedWord} 已标记为未掌握`);
-    wordState.wordIndex++;
-    updateWord();
+  audio.stop(wordState.currentSound);
+  if (wordState.wordIndex + 1 >= wordState.selectedWords.length) {
+    return completePractice();
+  }
+  const skippedWord = wordState.selectedWords[wordState.wordIndex];
+  const dictionaryType = settings.dict_current;
+  if (!settings.unKnownWords[dictionaryType].includes(skippedWord)) {
+    settings.unKnownWords[dictionaryType].push(skippedWord);
+    setStorage("unKnownWords", settings.unKnownWords);
+  }
+  setDomText(dom.errText, `单词 ${skippedWord} 已标记为未掌握`);
+  wordState.wordIndex++;
+  updateWord();
 }
-// 返回上一个单词
+/**
+ * 返回上一词，并按附件递减完成计数。
+ */
 function goBackWord() {
-    const i = wordState.wordIndex;
-    if (i == 0) return;
+  const index = wordState.wordIndex;
+  if (index != 0) {
     wordState.wordIndex--;
-    wordState.wordElements[i - 1].classList.add('active');
-    wordState.wordElements[i].classList.remove('active');
+    wordState.wordElements[index - 1].classList.add("active");
+    wordState.wordElements[index].classList.remove("active");
     stats.done--;
     updateWord();
+  }
 }
-// 单元完成
-function unitComplete() {
-    gameState.isDone = true;
-    clearInterval(gameState.timer);
-    setDomText(dom.errText, '练习完成！');
-    setDomStyle(dom.errText, 'color', 'var(--primary-color)');
-    setDomStyle(dom.progress, 'width', '100%');
-    setTimeout(() => {
-        setDomStyle(dom.errText, 'color', 'var(--error-color)');
-        updateDifficulty(1);
-    }, 2000);
+/**
+ * 记录统计，并在两秒后开始下一进度。
+ */
+function completePractice() {
+  gameState.isDone = true;
+  clearInterval(gameState.timer);
+  practiceCalendar.recordPractice();
+  setDomText(dom.errText, "练习完成！");
+  setDomStyle(dom.errText, "color", "var(--primary-color)");
+  setDomStyle(dom.progress, "width", "100%");
+  setTimeout(() => {
+    setDomStyle(dom.errText, "color", "var(--error-color)");
+    changeProgress(1);
+  }, 2000);
 }
-// 处理打字输入
-function checkTyping(key) {
-    if (gameState.isDone) return;
-    const currentWord = wordState.currentWord;
-    const expectedChar = currentWord.charAt(stats.typed).toUpperCase();
-    if (expectedChar === key) {
-        stats.correct++;
-        stats.typed++;
-        setDomText(dom.errText, '');
-        const html = stats.typed ?
-            `${currentWord.substring(0, stats.typed)}</span>${currentWord.substring(stats.typed)}` :
-            currentWord;
-        wordState.currWordEl.innerHTML = '<span class="typed">' + html.replace(/ /g, '&nbsp;');
-        if (stats.typed === currentWord.length) {
-            stats.done++;
-            if (gameState.isReview && gameState.isHidden) {
-                wordState.correctWords[currentWord] = (wordState.correctWords[currentWord] || 0) + 1;
-                if (wordState.correctWords[currentWord] > 3) {
-                    proxy.unKnownWords = proxy.unKnownWords.filter(w => w !== currentWord);
-                    setDomText(dom.errText, `已掌握单词：${currentWord}`);
-                    setTimeout(() => {
-                        setDomText(dom.errText, '');
-                        nextWord();
-                    }, 1000);
-                    return;
-                }
-            }
-            nextWord();
+/**
+ * 近六个月练习日历，读取和写入 practiceRecords。日期键沿用本地日期 YYYY-M-D。
+ */
+const practiceCalendar = {
+  monthsToShow: 6,
+  weekDays: ["一", "二", "三", "四", "五", "六", "日"],
+  init() {
+    console.log("初始化日历显示");
+    const fragment = document.createDocumentFragment();
+    const today = new Date();
+    let year = today.getFullYear();
+    let month = today.getMonth();
+    dom.calendarsContainer.innerHTML = "";
+    for (let monthIndex = 0; monthIndex < this.monthsToShow; monthIndex++) {
+      const calendarElement = this._createAndPopulateCalendar(year, month);
+      fragment.appendChild(calendarElement);
+      month--;
+      if (month < 0) {
+        month = 11;
+        year--;
+      }
+    }
+    dom.calendarsContainer.appendChild(fragment);
+  },
+  _createAndPopulateCalendar(year, month) {
+    const calendarElement = document.createElement("div");
+    calendarElement.classList.add("calendar");
+    const heading = document.createElement("div");
+    heading.classList.add("month-year");
+    heading.textContent = new Date(year, month).toLocaleDateString("zh-CN", {
+      year: "numeric",
+      month: "long",
+    });
+    calendarElement.appendChild(heading);
+    const table = document.createElement("table");
+    const tableHead = document.createElement("thead");
+    const tableBody = document.createElement("tbody");
+    const weekdayRow = document.createElement("tr");
+    this.weekDays.forEach((weekday) => {
+      const headerCell = document.createElement("th");
+      headerCell.textContent = weekday;
+      weekdayRow.appendChild(headerCell);
+    });
+    tableHead.appendChild(weekdayRow);
+    table.appendChild(tableHead);
+    table.appendChild(tableBody);
+    calendarElement.appendChild(table);
+    const firstWeekday = (new Date(year, month, 1).getDay() || 7) - 1;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    let day = 1;
+    let cellIndex = 0;
+    for (let rowIndex = 0; rowIndex < 6 && day <= daysInMonth; rowIndex++) {
+      const row = document.createElement("tr");
+      for (let columnIndex = 0; columnIndex < 7; columnIndex++) {
+        const cell = document.createElement("td");
+        if (cellIndex >= firstWeekday && day <= daysInMonth) {
+          cell.textContent = day;
+          const dateKey = `${year}-${month + 1}-${day}`;
+          const practiceDay =
+            settings.practiceRecords && settings.practiceRecords[dateKey];
+          const dayStats = practiceDay ? practiceDay.stats : undefined;
+          if (dayStats) {
+            cell.style.backgroundColor = this._getColorForPractice(
+              dayStats.count,
+            );
+            cell.classList.add("has-practice");
+            cell.appendChild(this._createTooltip(dayStats));
+          }
+          day++;
         }
+        row.appendChild(cell);
+        cellIndex++;
+      }
+      tableBody.appendChild(row);
+    }
+    return calendarElement;
+  },
+  _createTooltip(dayStats) {
+    const tooltip = document.createElement("div");
+    tooltip.classList.add("tooltip");
+    tooltip.textContent = dayStats
+      ? this._formatTooltipContent(dayStats)
+      : "今日暂无练习";
+    return tooltip;
+  },
+  _formatTooltipContent: (dayStats) =>
+    `练习次数: ${dayStats.count}次\n        总用时: ${Math.round(dayStats.totalDuration / 60)}分钟\n        练习单词: ${dayStats.totalWords}个\n        正确单词: ${dayStats.totalCorrect}个\n        平均正确率: ${dayStats.avgAccuracy}%\n        平均速度: ${dayStats.avgSpeed}字/分`,
+  _calculatePracticeStats(records) {
+    const totals = {
+      totalDuration: 0,
+      totalWords: 0,
+      totalCorrect: 0,
+      avgAccuracy: 0,
+      avgSpeed: 0,
+    };
+    if (!records || records.length === 0) {
+      return {
+        totalDuration: 0,
+        totalWords: 0,
+        totalCorrect: 0,
+        avgAccuracy: 0,
+        avgSpeed: 0,
+        count: 0,
+      };
+    }
+    records.forEach((record) => {
+      totals.totalDuration += record.duration || 0;
+      totals.totalWords += record.totalWords || 0;
+      totals.totalCorrect += record.correctWords || 0;
+      totals.avgAccuracy += record.accuracy || 0;
+      totals.avgSpeed += record.typingSpeed || 0;
+    });
+    const count = records.length;
+    if (count > 0) {
+      totals.avgAccuracy = ((totals.avgAccuracy / count) * 100).toFixed(1);
+      totals.avgSpeed = Math.round(totals.avgSpeed / count);
     } else {
-        stats.errors += expectedChar;
-        stats.typos++;
-        setDomText(dom.errText, `按键错误: ${key}`);
-        beep.play();
-        if (stats.typos > 4) {
-            skipWord();
-            stats.failed++;
-        }
+      totals.avgAccuracy = 0;
+      totals.avgSpeed = 0;
     }
-    updateStats();
-}
-// 更新统计信息
-function updateStats() {
-    const total = stats.correct + stats.errors.length;
-    setDomText(dom.speedVal, format.speed(stats.correct, stats.time));
-    setDomText(dom.correctVal, stats.done);
-    setDomText(dom.errWordVal, stats.failed);
-    setDomText(dom.rateVal, format.percentage(stats.correct, total));
-    setDomStyle(dom.progress, 'width', `${((stats.done + stats.failed) / wordState.selectedWords.length) * 100}%`);
-}
-// 切换暗黑模式
+    totals.count = count;
+    return totals;
+  },
+  recordPractice() {
+    const today = new Date();
+    const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    if (!(dom && stats && wordState && gameState && settings && setStorage)) {
+      console.error("Dependencies not fully available for recording practice.");
+      return;
+    }
+    if (!settings.practiceRecords) {
+      settings.practiceRecords = {};
+    }
+    if (!settings.practiceRecords[dateKey]) {
+      settings.practiceRecords[dateKey] = {
+        records: [],
+        stats: undefined,
+      };
+    }
+    const record = {
+      timestamp: Date.now(),
+      duration: stats.time || 0,
+      dictionary: settings.dict_current,
+      level: settings.dict_progress
+        ? settings.dict_progress[settings.dict_current]
+        : undefined,
+      totalWords: wordState.selectedWords ? wordState.selectedWords.length : 0,
+      correctWords: stats.done || 0,
+      failedWords: stats.failed || 0,
+      accuracy:
+        undefined !== stats.correct &&
+        undefined !== stats.errors &&
+        stats.correct + stats.errors.length > 0
+          ? stats.correct / (stats.correct + stats.errors.length)
+          : 0,
+      isHidden: gameState.isHidden,
+      wordRepeat: settings.unit_loopCount,
+      typingSpeed:
+        undefined !== stats.correct && stats.time > 0
+          ? (stats.correct / stats.time) * 60
+          : 0,
+      errorRate:
+        undefined !== stats.errors &&
+        undefined !== stats.typed &&
+        stats.typed > 0
+          ? stats.errors.length / stats.typed
+          : 0,
+      isReviewMode: gameState.isReview,
+      hideLastWord: settings.display_hideLastWord,
+      shuffled: settings.unit_isShuffled,
+    };
+    try {
+      settings.practiceRecords[dateKey].records.push(record);
+      settings.practiceRecords[dateKey].stats = this._calculatePracticeStats(
+        settings.practiceRecords[dateKey].records,
+      );
+      setStorage("practiceRecords", settings.practiceRecords);
+    } catch (error) {
+      console.error("Failed to record practice:", error);
+      if (
+        settings.practiceRecords[dateKey] &&
+        settings.practiceRecords[dateKey].records.length > 0
+      ) {
+        settings.practiceRecords[dateKey].records.pop();
+        settings.practiceRecords[dateKey].stats = this._calculatePracticeStats(
+          settings.practiceRecords[dateKey].records,
+        );
+      }
+    }
+  },
+  _getColorForPractice(count) {
+    if (count === 0) {
+      return "hsl(120, 60%, 90%)";
+    }
+    let lightness = 90 - (50 * Math.min(count, 20)) / 20;
+    lightness = Math.round(10 * lightness) / 10;
+    return `hsl(120, 60%, ${lightness}%)`;
+  },
+};
+/**
+ * 完成单词时的烟花粒子动画。参数分别为深色主题和烟花数量。
+ */
+const showFireworks = (isDarkMode, burstCount = 3) => {
+  const minHorizontalRatio = 0.3;
+  const maxHorizontalRatio = 0.7;
+  const minVerticalRatio = 0.2;
+  const maxVerticalRatio = 0.4;
+  let context;
+  let canvas = dom.fireworksCanvas;
+  let particles = [];
+  let animationFrame = null;
+  context = canvas.getContext("2d");
+  const pixelRatio = window.devicePixelRatio || 1;
+  canvas.width = window.innerWidth * pixelRatio;
+  canvas.height = window.innerHeight * pixelRatio;
+  context.scale(pixelRatio, pixelRatio);
+  canvas.style.position = "fixed";
+  canvas.style.left = "0";
+  canvas.style.top = "0";
+  canvas.style.pointerEvents = "none";
+  canvas.style.zIndex = -1;
+  const animate = () => {
+    if (!context || !canvas) {
+      return;
+    }
+    const viewportWidth = canvas.width / (window.devicePixelRatio || 1);
+    const viewportHeight = canvas.height / (window.devicePixelRatio || 1);
+    if (particles.length > 0) {
+      context.globalCompositeOperation = "destination-out";
+      context.fillStyle = "rgba(0, 0, 0, 0.2)";
+      context.fillRect(0, 0, viewportWidth, viewportHeight);
+      context.globalCompositeOperation = "lighter";
+      const remainingParticles = [];
+      for (
+        let particleIndex = 0;
+        particleIndex < particles.length;
+        particleIndex++
+      ) {
+        const particle = particles[particleIndex];
+        particle.x += Math.cos(particle.radians) * particle.radius;
+        particle.y += Math.sin(particle.radians) * particle.radius + 1;
+        particle.radius *= 0.92;
+        particle.alpha -= 0.015;
+        if (particle.alpha > 0.015 && particle.radius > 0.1) {
+          context.beginPath();
+          context.arc(
+            particle.x,
+            particle.y,
+            particle.size / 2,
+            0,
+            2 * Math.PI,
+            false,
+          );
+          context.closePath();
+          context.fillStyle = `hsla(${particle.hue}, 100%, ${particle.brightness}%, ${particle.alpha})`;
+          context.fill();
+          remainingParticles.push(particle);
+        }
+      }
+      particles = remainingParticles;
+      animationFrame = requestAnimationFrame(animate);
+    } else {
+      context.globalCompositeOperation = "destination-out";
+      context.fillStyle = "rgba(0, 0, 0, 1)";
+      context.fillRect(0, 0, viewportWidth, viewportHeight);
+      animationFrame = null;
+    }
+  };
+  if (!canvas) {
+    if (!initAndResize()) {
+      return;
+    }
+    window.addEventListener("resize", initAndResize, false);
+  }
+  const minBrightness = isDarkMode ? 60 : 20;
+  const maxBrightness = isDarkMode ? 100 : 50;
+  for (let burstIndex = 0; burstIndex < burstCount; burstIndex++) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const originX =
+      viewportWidth *
+        (Math.random() * (maxHorizontalRatio - minHorizontalRatio) +
+          minHorizontalRatio) +
+      50 * (2 * Math.random() - 1);
+    const originY =
+      viewportHeight *
+        (Math.random() * (maxVerticalRatio - minVerticalRatio) +
+          minVerticalRatio) +
+      50 * (2 * Math.random() - 1);
+    const baseHue = Math.floor(361 * Math.random());
+    for (let particleIndex = 0; particleIndex < 300; particleIndex++) {
+      const angle = Math.random() * Math.PI * 2;
+      const velocity = 2 * (7 * Math.random() + 1);
+      const size = 3 * Math.random() + 2;
+      const hue = (Math.floor(81 * Math.random()) - 40 + baseHue + 360) % 360;
+      const brightness =
+        Math.floor(Math.random() * (maxBrightness - minBrightness + 1)) +
+        minBrightness;
+      const alpha = 0.6 * Math.random() + 0.4;
+      particles.push({
+        x: originX,
+        y: originY,
+        radians: angle,
+        radius: velocity,
+        size: size,
+        hue: hue,
+        brightness: brightness,
+        alpha: alpha,
+      });
+    }
+  }
+  if (animationFrame === null && particles.length > 0) {
+    animationFrame = requestAnimationFrame(animate);
+  }
+};
+/**
+ * 按钮事件回调依赖 this 指向按钮；保留普通函数以维持调用语义。
+ */
 function toggleDarkMode() {
-    proxy.darkMode = !proxy.darkMode;
-    document.body.classList.toggle('dark-mode', proxy.darkMode);
-    dom.darkMode.textContent = proxy.darkMode ? '☀️' : '🌙';
-    this.blur();
+  settings.darkMode = !settings.darkMode;
+  document.body.classList.toggle("dark-mode", settings.darkMode);
+  dom.darkMode.textContent = settings.darkMode ? "☀️" : "🌙";
+  this.blur();
 }
-// 更新进度级别
-function updateDifficulty(change = 0) {
-    const newLevel = Math.min(Math.max(Number(dom.dictProgress.value) + change, 1), Number(dom.dictProgress.max));
-    // 更新 dict_progress 中当前等级的进度
-    proxy.dict_progress = { ...proxy.dict_progress, [proxy.dict_current]: newLevel };
-    dom.diffMenu.classList.remove('visible');
-    init();
+/**
+ * 调整当前词典的进度，并重新开始。
+ */
+function changeProgress(change = 0) {
+  const newLevel = Math.min(
+    Math.max(Number(dom.dictProgress.value) + change, 1),
+    Number(dom.dictProgress.max),
+  );
+  settings.dict_progress = {
+    ...settings.dict_progress,
+    [settings.dict_current]: newLevel,
+  };
+  dom.diffMenu.classList.remove("visible");
+  startPractice();
 }
-// 切换隐藏单词模式
+/**
+ * 切换听音拼写模式，同时关闭交错隐藏和多次重复。
+ */
 function toggleHideWord() {
-    if (gameState.isDone) init();
-    gameState.isHidden = !gameState.isHidden;
-    dom.hideToggle.textContent = gameState.isHidden ? '👀' : '🙈';
-    proxy.display_hideLastWord = false;
-    proxy.unit_loopCount = 1;
-    wordState.wordElements.forEach(el => el.classList.toggle('hidden-text', gameState.isHidden));
+  if (gameState.isDone) {
+    startPractice();
+  }
+  gameState.isHidden = !gameState.isHidden;
+  dom.hideToggle.textContent = gameState.isHidden ? "👀" : "🙈";
+  settings.display_hideLastWord = false;
+  settings.unit_loopCount = 1;
+  wordState.wordElements.forEach((element) =>
+    element.classList.toggle("hidden-text", gameState.isHidden),
+  );
 }
-// 切换复习单词模式
-function reviewWords() {
-    if (proxy.unKnownWords.length === 0) {
-        setDomText(dom.errText, `当前字典(${proxy.dict_current})没有未掌握的单词,请继续练习`);
-        dom.reviewToggle.textContent = '🎯';
-        return;
-    }
-    this.blur();
-    gameState.isReview = !gameState.isReview;
-    dom.reviewToggle.textContent = gameState.isReview ? '📚' : '🎯';
-    dom.dictProgress.style.display = gameState.isReview ? 'none' : 'block';
-    init();
+/**
+ * 复习当前词典的错词。保留附件 this.blur() 的调用方式。
+ */
+function toggleReviewMode() {
+  const dictionaryType = settings.dict_current;
+  if (
+    !settings.unKnownWords[dictionaryType] ||
+    settings.unKnownWords[dictionaryType].length === 0
+  ) {
+    setDomText(
+      dom.errText,
+      `当前字典(${dictionaryType})没有未掌握的单词,请继续练习`,
+    );
+    dom.reviewToggle.textContent = "🎯";
+    return;
+  }
+  this.blur();
+  gameState.isReview = !gameState.isReview;
+  dom.reviewToggle.textContent = gameState.isReview ? "📚" : "🎯";
+  dom.dictProgress.style.display = gameState.isReview ? "none" : "block";
+  startPractice();
 }
-// 清除未掌握单词
-function clearUnKnownWords() {
-    proxy.unKnownWords = [];
-    setDomText(dom.errText, `已清除当前字典(${proxy.dict_current})未掌握单词`);
+/**
+ * 清空当前词典的错词记录。
+ */
+function clearUnknownWords() {
+  const dictionaryType = settings.dict_current;
+  settings.unKnownWords[dictionaryType] = [];
+  setStorage("unKnownWords", settings.unKnownWords);
+  setDomText(dom.errText, `已清除当前字典(${dictionaryType})未掌握单词`);
 }
-// 标记为已掌握单词
-function knownWord() {
-    if (gameState.isDone) return;
-    const currentWord = wordState.currentWord;
-    const oldIndex = wordState.wordIndex;
-    // 添加到已掌握单词列表
-    proxy.knownWords.push(currentWord);
-    setStorage('knownWords', proxy.knownWords);
-    setDomText(dom.errText, `已掌握单词：${currentWord}`);
-
-    audio.stop(wordState.currentSound);
-    // 计算在oldIndex之前出现了多少个currentWord实例
-    const removedCount = wordState.selectedWords.slice(0, oldIndex).filter(w => w === currentWord).length;
-    wordState.selectedWords = wordState.selectedWords.filter(w => w !== currentWord);
-    //根据之前删除的单词数调整索引
-    wordState.wordIndex = Math.max(0, oldIndex - removedCount);
-    // 如果已经是最后一个单词
-    if (wordState.wordIndex >= wordState.selectedWords.length) return unitComplete();
-    // 更新 DOM
-    dom.wordList.querySelectorAll(`.word[data-word="${currentWord}"]`).forEach(el => el.remove());
-    wordState.wordElements = dom.wordList.querySelectorAll('.word');
-
-    updateWord();
+/**
+ * 把当前词记入已掌握列表，并移除本轮队列里的同词副本。
+ */
+function markWordKnown() {
+  if (gameState.isDone) {
+    return;
+  }
+  const currentWord = wordState.currentWord;
+  const oldIndex = wordState.wordIndex;
+  settings.knownWords.push(currentWord);
+  setStorage("knownWords", settings.knownWords);
+  setDomText(dom.errText, "已掌握单词：" + currentWord);
+  audio.stop(wordState.currentSound);
+  const removedBeforeIndex = wordState.selectedWords
+    .slice(0, oldIndex)
+    .filter((word) => word === currentWord).length;
+  wordState.selectedWords = wordState.selectedWords.filter(
+    (word) => word !== currentWord,
+  );
+  wordState.wordIndex = Math.max(0, oldIndex - removedBeforeIndex);
+  if (wordState.wordIndex >= wordState.selectedWords.length) {
+    return completePractice();
+  }
+  dom.wordList
+    .querySelectorAll(`.word[data-word="${currentWord}"]`)
+    .forEach((element) => element.remove());
+  wordState.wordElements = dom.wordList.querySelectorAll(".word");
+  updateWord();
 }
-
-// 绑定配置到DOM元素
+/**
+ * 从设置填充 data-bind 控件，并绑定输入值的持久化事件。
+ */
 function bindConfigToDOM() {
-    // 绑定DOM元素
-    const bindElements = document.querySelectorAll('[data-bind]');
-    bindElements.forEach(element => {
-        const property = element.getAttribute('data-bind');
-        // 直接从 config 访问属性值，因为 config 已经被 proxy 初始化了
-        const value = config[property];
-
-        if (element.tagName === 'INPUT') {
-            if (element.type === 'checkbox') {
-                element.checked = value;
-            } else if (element.type === 'range') {
-                element.value = value;
-                // 绑定 input 事件触发 proxy.set
-                element.addEventListener('input', function () {
-                    proxy[property] = parseFloat(this.value);
-                });
-            } else {
-                element.value = value;
-                // 绑定 input 事件触发 proxy.set
-                element.addEventListener('input', function () {
-                    proxy[property] = this.value;
-                });
-            }
-        } else if (element.tagName === 'SELECT') {
-            element.value = value;
-            // 绑定 change 事件触发 proxy.set
-            element.addEventListener('change', function () {
-                proxy[property] = this.value;
-            });
+  document.querySelectorAll("[data-bind]").forEach((element) => {
+    const property = element.getAttribute("data-bind");
+    const value = config[property];
+    if (element.tagName === "INPUT") {
+      if (element.type === "checkbox") {
+        element.checked = value;
+      } else {
+        if (element.type === "range") {
+          element.value = value;
+          element.addEventListener("input", function () {
+            settings[property] = parseFloat(this.value);
+          });
         } else {
-            // 对于其他元素(如 span, p 等)，更新其文本内容
-            element.textContent = value;
+          element.value = value;
+          element.addEventListener("input", function () {
+            settings[property] = this.value;
+          });
         }
-        // 对于非 input/select 元素，其值变化由 proxy.set 处理，不需要在这里绑定事件
-    });
+      }
+    } else {
+      if (element.tagName === "SELECT") {
+        element.value = value;
+        element.addEventListener("change", function () {
+          settings[property] = this.value;
+        });
+      } else {
+        element.textContent = value;
+      }
+    }
+  });
 }
-// 设置事件监听器
+/**
+ * 集中绑定点击与设置变更事件。
+ */
 function setupEventListeners() {
-    // 按事件类型(click/change/input)组织不同的处理函数
-    const eventHandlers = {
-        // 点击事件处理器
-        'click': {
-            'darkMode': toggleDarkMode,           // 切换暗黑模式
-            'reviewToggle': reviewWords,          // 切换复习模式
-            'hideToggle': toggleHideWord,         // 切换隐藏单词
-            'restartBtn': init,                   // 重新开始练习
-            'startHint': init,                    // 开始提示点击
-            'helpBtn': () => dom.helpModal.style.display = 'flex',    // 显示帮助模态框
-            'helpClose': () => dom.helpModal.style.display = 'none',  // 关闭帮助模态框
-            'setupToggle': (e) => {               // 设置菜单切换
-                e.stopPropagation();
-                dom.diffMenu.classList.toggle('visible');
-                dom.soundMenu.classList.remove('visible');
-                dom.dictDropdown.classList.remove('visible');
-            },
-            'soundToggle': (e) => {              // 声音设置菜单切换
-                e.stopPropagation();
-                dom.soundMenu.classList.toggle('visible');
-                dom.diffMenu.classList.remove('visible');
-                dom.dictDropdown.classList.remove('visible');
-            },
-            'dictSelector': (e) => {             // 字典选择器菜单切换
-                e.stopPropagation();
-                dom.dictDropdown.classList.toggle('visible');
-                dom.diffMenu.classList.remove('visible');
-                dom.soundMenu.classList.remove('visible');
-            }
-        },
-        // 值改变事件处理器
-        'change': {
-            'unitLoopSlider': function () {      // 单元循环次数滑块
-                const value = Number(this.value);
-                proxy.unit_loopCount = value;
-                if (value < 3 && proxy.display_hideLastWord) {
-                    proxy.display_hideLastWord = false;
-                }
-                init();
-            },
-            'soundLoopSlider': function () {     // 声音循环次数滑块
-                proxy.voice_loop = Number(this.value);
-                dom.soundLoopValue.textContent = this.value;
-            },
-            'rateSlider': function () {          // 语速调节滑块
-                const value = Number(this.value);
-                proxy.voice_rate = value;
-                ttsMsg.rate = value;
-            },
-            'voiceEnableParaphrase': function () {  // 启用释义语音开关
-                proxy.voice_enableParaphrase = this.checked;
-            },
-            'voiceSelect': function () {         // 语音类型选择
-                proxy.voice_type = this.value;
-            },
-            'unitIsShuffled': function () {      // 单词随机排序开关
-                proxy.unit_isShuffled = this.checked;
-                if (this.checked && proxy.display_hideLastWord) {
-                    proxy.display_hideLastWord = false;
-                }
-                init();
-            },
-            'displayHideParaphrase': function () {  // 隐藏释义开关
-                proxy.display_hideParaphrase = this.checked;
-                dom.paraphrase.classList.toggle('hidden-text', this.checked);
-            },
-            'lastWordHidden': function () {      // 隐藏上一个单词开关
-                proxy.display_hideLastWord = this.checked;
-                if (this.checked) {
-                    proxy.unit_isShuffled = false;
-                    if (proxy.unit_loopCount < 3) proxy.unit_loopCount = 3;
-                }
-                init();
-            },
-            'dictProgress': () => updateDifficulty(0)   // 更新字典进度条
+  const eventHandlers = {
+    click: {
+      darkMode: toggleDarkMode,
+      reviewToggle: toggleReviewMode,
+      hideToggle: toggleHideWord,
+      restartBtn: startPractice,
+      startHint: startPractice,
+      helpBtn: () => (dom.helpModal.style.display = "flex"),
+      helpClose: () => (dom.helpModal.style.display = "none"),
+      setupToggle: (event) => {
+        event.stopPropagation();
+        dom.diffMenu.classList.toggle("visible");
+        dom.soundMenu.classList.remove("visible");
+        dom.dictDropdown.classList.remove("visible");
+      },
+      soundToggle: (event) => {
+        event.stopPropagation();
+        dom.soundMenu.classList.toggle("visible");
+        dom.diffMenu.classList.remove("visible");
+        dom.dictDropdown.classList.remove("visible");
+      },
+      dictSelector: (event) => {
+        event.stopPropagation();
+        dom.dictDropdown.classList.toggle("visible");
+        dom.diffMenu.classList.remove("visible");
+        dom.soundMenu.classList.remove("visible");
+      },
+      statisticsBtn: () => {
+        dom.calendarOverlay.classList.add("active");
+        practiceCalendar.init();
+      },
+    },
+    change: {
+      unitLoopSlider: function () {
+        const repeatCount = Number(this.value);
+        settings.unit_loopCount = repeatCount;
+        if (repeatCount < 3 && settings.display_hideLastWord) {
+          settings.display_hideLastWord = false;
         }
-    };
-
-    // 遍历事件类型和对应的处理器，将它们绑定到相应的DOM元素上
-    Object.entries(eventHandlers).forEach(([eventType, handlers]) => {
-        Object.entries(handlers).forEach(([elementKey, handler]) => {
-            if (dom[elementKey]) {
-                bindEvent(dom[elementKey], eventType, handler);
-            }
-        });
-    });
-
-    // 单词播放事件：点击单词时播放对应的音频
-    bindEvent(dom.wordList, 'click', (event) => {
-        if (event.target.dataset.word) audio.create(event.target.dataset.word).play()
-    });
-
-    // 字典选项点击事件：切换不同的字典
-    document.querySelectorAll('.dictionary-option').forEach(option => {
-        bindEvent(option, 'click', (e) => {
-            e.stopPropagation();
-            switchDictionary(option.dataset.type);
-            dom.dictDropdown.classList.remove('visible');
-        });
-    });
-
-    // 全局点击事件：点击空白处关闭下拉菜单
-    bindEvent(document, 'click', (e) => {
-        if (!e.target.closest('.dict-selector')) {
-            dom.dictDropdown.classList.remove('visible');
+        startPractice();
+      },
+      soundLoopSlider: function () {
+        settings.voice_loop = Number(this.value);
+        dom.soundLoopValue.textContent = this.value;
+      },
+      rateSlider: function () {
+        const rate = Number(this.value);
+        settings.voice_rate = rate;
+        ttsMessage.rate = rate;
+      },
+      voiceEnableParaphrase: function () {
+        settings.voice_enableParaphrase = this.checked;
+      },
+      voiceSelect: function () {
+        settings.voice_type = this.value;
+      },
+      unitIsShuffled: function () {
+        settings.unit_isShuffled = this.checked;
+        if (this.checked && settings.display_hideLastWord) {
+          settings.display_hideLastWord = false;
         }
-        if (!e.target.closest('.controls')) {
-            dom.diffMenu.classList.remove('visible');
-            dom.soundMenu.classList.remove('visible');
+        startPractice();
+      },
+      displayHideParaphrase: function () {
+        settings.display_hideParaphrase = this.checked;
+        dom.paraphrase.classList.toggle("hidden-text", this.checked);
+      },
+      capitalizeWords: function () {
+        settings.capitalize_words = this.checked;
+        startPractice();
+      },
+      enableAnimations: function () {
+        settings.enable_animations = this.checked;
+      },
+      lastWordHidden: function () {
+        settings.display_hideLastWord = this.checked;
+        if (this.checked) {
+          settings.unit_isShuffled = false;
+          if (settings.unit_loopCount < 3) {
+            settings.unit_loopCount = 3;
+          }
         }
+        startPractice();
+      },
+      dictProgress: () => changeProgress(0),
+    },
+  };
+  Object.entries(eventHandlers).forEach(([eventType, handlers]) => {
+    Object.entries(handlers).forEach(([elementKey, handler]) => {
+      if (dom[elementKey]) {
+        bindEvent(dom[elementKey], eventType, handler);
+      }
     });
+  });
+  bindEvent(dom.wordList, "click", (event) => {
+    if (event.target.dataset.word) {
+      audio.create(event.target.dataset.word).play();
+    }
+  });
+  document.querySelectorAll(".dictionary-option").forEach((option) => {
+    bindEvent(option, "click", (event) => {
+      event.stopPropagation();
+      switchDictionary(option.dataset.type);
+      dom.dictDropdown.classList.remove("visible");
+    });
+  });
+  bindEvent(document, "click", (event) => {
+    if (!event.target.closest(".dict-selector")) {
+      dom.dictDropdown.classList.remove("visible");
+    }
+    if (!event.target.closest(".controls")) {
+      dom.diffMenu.classList.remove("visible");
+      dom.soundMenu.classList.remove("visible");
+      dom.calendarOverlay.classList.remove("active");
+    }
+  });
+  bindEvent(dom.restartBtn, "click", () => {
+    if (gameState.isDone) {
+      practiceCalendar.recordPractice();
+    }
+  });
 }
-// 设置键盘快捷键
+/**
+ * 沿用附件 keyCode 快捷键；帮助中的 Shift+Esc 尚无对应实现。
+ */
 function setupKeyboardShortcuts() {
-    const keyHandlers = {
-        13: () => setDomText(dom.errText, wordState.currentWord),   // Enter: 显示当前单词
-        220: () => wordState.currentSound.play(),                   // \: 播放单词音频
-        27: toggleHideWord,                                         // Esc: 切换隐藏单词
-        35: clearUnKnownWords,                                      // End: 清除未掌握单词
-        39: () => gameState.isHidden && skipWord(),                 // →: 跳过当前单词(仅在隐藏模式)
-        37: goBackWord,                                             // ←: 返回上一个单词
-        38: () => updateDifficulty(1),                              // ↑: 增加难度
-        40: () => updateDifficulty(-1),                             // ↓: 降低难度
-        192: knownWord                                              // `: 标记为已掌握
-    };
-
-    // 绑定键盘事件处理
-    bindEvent(document, 'keydown', (event) => {
-        const { keyCode } = event;
-        if (keyHandlers[keyCode]) {
-            keyHandlers[keyCode]();
-        } else if ((keyCode >= 65 && keyCode <= 90) || keyCode === 32) {  // 字母键(A-Z)和空格键
-            checkTyping(String.fromCharCode(keyCode));
-        } else if (keyCode === 222) {  // 单引号键
-            checkTyping("'");
+  const keyHandlers = {
+    13: () => setDomText(dom.errText, wordState.currentWord),
+    220: () => wordState.currentSound.play(),
+    27: toggleHideWord,
+    35: clearUnknownWords,
+    39: () => gameState.isHidden && skipWord(),
+    37: goBackWord,
+    38: () => changeProgress(1),
+    40: () => changeProgress(-1),
+    192: markWordKnown,
+  };
+  bindEvent(document, "keydown", (event) => {
+    const { keyCode } = event;
+    if (keyHandlers[keyCode]) {
+      keyHandlers[keyCode]();
+    } else {
+      if ((keyCode >= 65 && keyCode <= 90) || keyCode === 32) {
+        checkTyping(String.fromCharCode(keyCode));
+      } else {
+        if (keyCode === 222) {
+          checkTyping("'");
         }
-    });
+      }
+    }
+  });
 }
-// 初始化其他设置
-function initOtherSettings() {
-    // 初始化字典和主题
-    switchDictionary(proxy.dict_current);
-    document.body.classList.toggle('dark-mode', proxy.darkMode);
-    dom.darkMode.textContent = proxy.darkMode ? '☀️' : '🌙';
-
-    // 初始化语音设置
-    ttsMsg.lang = 'zh-CN';
-    ttsMsg.rate = proxy.voice_rate;
+/**
+ * 加载所选词典，并恢复主题和语音设置。
+ */
+function initializeApp() {
+  switchDictionary(settings.dict_current);
+  document.body.classList.toggle("dark-mode", settings.darkMode);
+  dom.darkMode.textContent = settings.darkMode ? "☀️" : "🌙";
+  ttsMessage.lang = "zh-CN";
+  ttsMessage.rate = settings.voice_rate;
 }
 bindConfigToDOM();
 setupEventListeners();
 setupKeyboardShortcuts();
-initOtherSettings();
+initializeApp();

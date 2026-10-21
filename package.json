@@ -1,0 +1,13 @@
+{
+  "name": "word-typing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Readable restoration of the updated word typing practice page",
+  "scripts": {
+    "check": "node --check index.js",
+    "test": "node --test tests/restoration.test.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
