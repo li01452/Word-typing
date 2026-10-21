@@ -1,0 +1,49 @@
+[
+  {
+    "id": "basic",
+    "name": "基础英语词汇",
+    "url": "basic.json",
+    "count": 1000
+  },
+  {
+    "id": "cet4",
+    "name": "英语四级词库",
+    "url": "cet4.json",
+    "count": 2607
+  },
+  {
+    "id": "gaokao",
+    "name": "高中英语",
+    "url": "dicts/gaokao.json",
+    "source": "GaoKao_3500.json",
+    "count": 3877
+  },
+  {
+    "id": "cet6",
+    "name": "英语六级",
+    "url": "dicts/cet6.json",
+    "source": "CET6_T.json",
+    "count": 2345
+  },
+  {
+    "id": "kaoyan",
+    "name": "考研英语",
+    "url": "dicts/kaoyan.json",
+    "source": "KaoYan_3_T.json",
+    "count": 3727
+  },
+  {
+    "id": "ielts",
+    "name": "雅思英语",
+    "url": "dicts/ielts.json",
+    "source": "IELTS_3_T.json",
+    "count": 3575
+  },
+  {
+    "id": "toefl",
+    "name": "托福英语",
+    "url": "dicts/toefl.json",
+    "source": "TOEFL_3_T.json",
+    "count": 4264
+  }
+]

@@ -1,0 +1,17 @@
+词库来源：RealKai42/qwerty-learner
+上游版本：1182426f2bd0a28c95302c33f9e19136b1262a70
+https://github.com/RealKai42/qwerty-learner
+上游仓库附带 GPL-3.0 许可，见 LICENSE-qwerty-learner.txt。
+本地转换：取 name 为键；合并同词的全部 trans，去除重复释义；省略音标。
+保留上游词序、英文短语、大小写和标点；词条数以转换后的实际数量为准。
+
+高中英语：GaoKao_3500.json → dicts/gaokao.json（3877 词）
+原始文件 SHA-256：a49a61b65c70f2b4b734705f16288cb89de630cbfef93c6fa574754ac08f207d
+英语六级：CET6_T.json → dicts/cet6.json（2345 词）
+原始文件 SHA-256：ed5e76b945b7c7bc567a75d44a6eaeda137c767960121057deab52593e245d6e
+考研英语：KaoYan_3_T.json → dicts/kaoyan.json（3727 词）
+原始文件 SHA-256：2997157b54912bb56118cf3153fb891c452fbfe813da8d21bb219ea7f2829090
+雅思英语：IELTS_3_T.json → dicts/ielts.json（3575 词）
+原始文件 SHA-256：63f64c79c96270f2a74f7bfebe952efe1d4c1f09b887bc3e4560a989b8873ad1
+托福英语：TOEFL_3_T.json → dicts/toefl.json（4264 词）
+原始文件 SHA-256：a1209981905e8dacd3e52774ecc1157a6f5dd1417240a5ded08797c51a835d4c
